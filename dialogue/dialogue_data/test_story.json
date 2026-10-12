@@ -1,0 +1,25 @@
+[
+  {
+	"speaker": "",
+	"text": "我是一个旁白。\n说一些没啥用的小话。",
+	"expression": 0
+  },
+  {
+	"speaker": "xinhuo",
+	"text": "我是焰铃。\n额总之这是我的立绘。",
+	"expression": 0,
+	"cast": ["xinhuo"]
+  },
+  {
+	"speaker": "write",
+	"text": "看板娘coser……？\n这到底是怎么回事？",
+	"expression": 0,
+	"cast": ["xinhuo", "write"]
+  },
+  {
+	"speaker": "draw",
+	"text": "你别入戏啊。\n这就是个测试文案。",
+	"expression": 0,
+	"cast": ["draw", "write"]
+  }
+]

@@ -1,0 +1,28 @@
+Theme Assist third-party notices
+
+1. Theme Assist
+   MIT License. Copyright (c) 2026 Keranik.
+   See LICENSE.
+
+2. Pixel faces (Grain, Grain Small, Chunk, Tall)
+   Original bitmap glyphs drawn for Theme Assist (src/core/ta_pixel_glyphs.gd).
+   MIT with the addon.
+
+3. Editor icons (addons/theme_assist/icons/*.svg)
+   Original 16×16 SVGs shipped with Theme Assist. MIT.
+
+4. Pixel chrome
+   Generated at runtime from your tokens (src/core/ta_chrome.gd). No image files.
+
+5. UI sounds
+   Generated PCM (src/core/ta_sfx.gd). No samples.
+
+6. Barlow and Barlow Semi Condensed (fonts/*.ttf)
+   Barlow-Medium, Barlow-Bold, BarlowSemiCondensed-Medium,
+   BarlowSemiCondensed-SemiBold. Copyright 2017 The Barlow Project Authors
+   (https://github.com/jpt/barlow). SIL Open Font License 1.1; the full text
+   is in fonts/OFL.txt and must stay with the font files. The fonts may be
+   bundled in a game, commercial or not, and may not be sold on their own.
+
+This addon does not redistribute Godot Engine. Games that use Godot must
+include the Godot MIT notice in their own credits.

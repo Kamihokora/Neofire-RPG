@@ -1,0 +1,35 @@
+{
+  "narrator_color": "#cccccc",
+  "characters": {
+    "write": {
+      "name": "文手",
+      "name_color": "#f54573",
+      "portrait": "res://assets/portraits/Write.png"
+    },
+    "draw": {
+      "name": "画手",
+      "name_color": "#42ffc2",
+      "portrait": "res://assets/portraits/Draw.png"
+    },
+    "rhythm": {
+      "name": "曲师",
+      "name_color": "#abc9ff",
+      "portrait": "res://assets/portraits/Rhythm.png"
+    },
+    "manga": {
+      "name": "问号",
+      "name_color": "#ffcc66",
+      "portrait": "res://assets/portraits/Manga.png"
+    },
+    "xinhuo": {
+      "name": "焰铃",
+      "name_color": "#ff4d4d",
+      "portrait": "res://assets/portraits/xinhuo_normal.png"
+    },
+    "enemy": {
+      "name": "敌人",
+      "name_color": "#ff6666",
+      "portrait": "res://assets/portraits/enemy.png"
+    }
+  }
+}

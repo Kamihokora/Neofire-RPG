@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/theme_assist/examples/fps_hud/fps_hud.gd" id="1_fps"]
+
+[node name="FpsHud" type="CanvasLayer"]
+script = ExtResource("1_fps")

@@ -1,0 +1,13 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Agent 自检截图（运行时生成）
+debug_shots/
+
+# Godot 导入临时文件
+*.tmp
+
+# 仅供 agent 参考的原始素材包 / 策划文档（不纳入版本控制）
+neofire/Plan_for_Agent/
+neofire/Things_for_Agent/
