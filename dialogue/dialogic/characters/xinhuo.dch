@@ -1,0 +1,25 @@
+{
+"@path": "res://addons/dialogic/Resources/character.gd",
+"@subpath": NodePath(""),
+&"_translation_id": "",
+&"color": Color(1, 0.3019608, 0.3019608, 1),
+&"custom_info": {
+"avatar": "res://assets/avatars/你好_05.png",
+"party": true
+},
+&"default_portrait": "default",
+&"description": "",
+&"display_name": "焰铃",
+&"mirror": false,
+&"nicknames": ["新火娘"],
+&"offset": Vector2(0, 0),
+&"portraits": {
+"default": {
+"export_overrides": {
+"image": "res://assets/portraits/xinhuo_normal.png"
+},
+"scene": ""
+}
+},
+&"scale": 1.0
+}

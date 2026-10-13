@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="DialogicStyle" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://addons/dialogic/Resources/dialogic_style.gd" id="1_style"]
+[ext_resource type="Script" path="res://addons/dialogic/Resources/dialogic_style_layer.gd" id="2_layer"]
+[ext_resource type="PackedScene" path="res://dialogue/dialogic/layout/neofire_box.tscn" id="3_base"]
+[ext_resource type="PackedScene" path="res://addons/dialogic/Modules/DefaultLayoutParts/Layer_Input/full_advance_input_layer.tscn" id="4_input"]
+
+[sub_resource type="Resource" id="Resource_base"]
+script = ExtResource("2_layer")
+scene = ExtResource("3_base")
+overrides = {}
+
+[sub_resource type="Resource" id="Resource_input"]
+script = ExtResource("2_layer")
+scene = ExtResource("4_input")
+overrides = {}
+
+[resource]
+script = ExtResource("1_style")
+name = "Neofire Box"
+layer_list = Array[String](["10"])
+layer_info = {
+"": SubResource("Resource_base"),
+"10": SubResource("Resource_input")
+}
+base_overrides = {}
+layers = Array[ExtResource("2_layer")]([])
+metadata/_latest_layer = ""

@@ -1,0 +1,25 @@
+{
+"@path": "res://addons/dialogic/Resources/character.gd",
+"@subpath": NodePath(""),
+&"_translation_id": "",
+&"color": Color(0.67058825, 0.7882353, 1, 1),
+&"custom_info": {
+"avatar": "",
+"party": true
+},
+&"default_portrait": "default",
+&"description": "",
+&"display_name": "曲师",
+&"mirror": false,
+&"nicknames": [],
+&"offset": Vector2(0, 0),
+&"portraits": {
+"default": {
+"export_overrides": {
+"image": "res://assets/portraits/Rhythm.png"
+},
+"scene": ""
+}
+},
+&"scale": 1.0
+}

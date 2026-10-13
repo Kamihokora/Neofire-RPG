@@ -1,0 +1,25 @@
+{
+"@path": "res://addons/dialogic/Resources/character.gd",
+"@subpath": NodePath(""),
+&"_translation_id": "",
+&"color": Color(1, 0.4, 0.4, 1),
+&"custom_info": {
+"avatar": "",
+"party": false
+},
+&"default_portrait": "default",
+&"description": "",
+&"display_name": "敌人",
+&"mirror": false,
+&"nicknames": [],
+&"offset": Vector2(0, 0),
+&"portraits": {
+"default": {
+"export_overrides": {
+"image": "res://assets/portraits/enemy.png"
+},
+"scene": ""
+}
+},
+&"scale": 1.0
+}

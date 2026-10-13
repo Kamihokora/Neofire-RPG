@@ -1,0 +1,9 @@
+这里没有一个人……
+
+- 去到其他房间
+	焰铃: 那就换个地方吧。
+	[signal arg="transfer:main/SpawnFromTrial"]
+- 离开
+	焰铃: 那就算了。
+
+label DONE

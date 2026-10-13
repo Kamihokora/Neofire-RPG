@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://grid_movement/pawns/actor_npc.gd" id="1_npc"]
+
+[sub_resource type="RectangleShape2D" id="Shape_body"]
+size = Vector2(26, 16)
+
+[node name="ActorNpc" type="CharacterBody2D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_npc")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+position = Vector2(0, 14)
+shape = SubResource("Shape_body")

@@ -19,9 +19,42 @@ run/main_scene="res://game.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Dialogic="*uid://ds2q0uclmolvu"
+GameState="*res://game_state.gd"
+
 [debug]
 
 gdscript/warnings/untyped_declaration=1
+
+[dialogic]
+
+directories/dch_directory={
+"draw": "res://dialogue/dialogic/characters/draw.dch",
+"enemy": "res://dialogue/dialogic/characters/enemy.dch",
+"manga": "res://dialogue/dialogic/characters/manga.dch",
+"rhythm": "res://dialogue/dialogic/characters/rhythm.dch",
+"write": "res://dialogue/dialogic/characters/write.dch",
+"xinhuo": "res://dialogue/dialogic/characters/xinhuo.dch"
+}
+directories/dtl_directory={
+"npc": "res://dialogue/dialogic/timelines/npc.dtl",
+"object": "res://dialogue/dialogic/timelines/object.dtl",
+"player_lose": "res://dialogue/dialogic/timelines/player_lose.dtl",
+"player_won": "res://dialogue/dialogic/timelines/player_won.dtl",
+"return_main": "res://dialogue/dialogic/timelines/return_main.dtl",
+"room2_alone": "res://dialogue/dialogic/timelines/room2_alone.dtl",
+"room2_key": "res://dialogue/dialogic/timelines/room2_key.dtl",
+"test_branch": "res://dialogue/dialogic/timelines/test_branch.dtl",
+"test_story": "res://dialogue/dialogic/timelines/test_story.dtl"
+}
+layout/style_directory={
+"": "res://dialogue/dialogic/layout/neofire_style.tres"
+}
+layout/default_style="res://dialogue/dialogic/layout/neofire_style.tres"
+text/letter_speed=0.025
+layout/end_behaviour=2.0
 
 [display]
 
@@ -32,7 +65,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/x_agent_rpc/plugin.cfg")
+enabled=PackedStringArray("res://addons/x_agent_rpc/plugin.cfg", "res://addons/dialogic/plugin.cfg")
 
 [filesystem]
 
@@ -78,6 +111,15 @@ move_right={
 , Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":68,"key_label":0,"unicode":100,"location":0,"echo":false,"script":null)
 , Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":14,"pressure":0.0,"pressed":false,"script":null)
 , Object(InputEventJoypadMotion,"resource_local_to_scene":false,"resource_name":"","device":-1,"axis":0,"axis_value":1.0,"script":null)
+]
+}
+dialogic_default_action={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":4194309,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+, Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"button_mask":1,"position":Vector2(0, 0),"global_position":Vector2(0, 0),"factor":1.0,"button_index":1,"canceled":false,"pressed":true,"double_click":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":32,"physical_keycode":0,"key_label":0,"unicode":32,"location":0,"echo":false,"script":null)
+, Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":88,"physical_keycode":0,"key_label":0,"unicode":120,"location":0,"echo":false,"script":null)
+, Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":0,"pressure":0.0,"pressed":false,"script":null)
 ]
 }
 

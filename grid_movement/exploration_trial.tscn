@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" uid="uid://cbliyo6c8337d" path="res://neofire/M3KU4(PY)QDYX%$FRM0XX]9.png" id="1_bg"]
+[ext_resource type="PackedScene" path="res://grid_movement/pawns/actor_player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://grid_movement/pawns/actor_npc.tscn" id="3_npc"]
+[ext_resource type="PackedScene" uid="uid://y66h87msahf2" path="res://dialogue/dialogue_player/dialogue_player.tscn" id="4_dp"]
+[ext_resource type="Script" uid="uid://c5hjtkmouag8b" path="res://dialogue/dialogue_ui.gd" id="5_ui"]
+[ext_resource type="Script" uid="uid://rp5r1oq52t36" path="res://grid_movement/map_spawn.gd" id="6_mapspawn"]
+[ext_resource type="PackedScene" path="res://grid_movement/blocks/collision_block.tscn" id="7_block"]
+
+
+[node name="ExplorationTrial" type="Node2D" groups=["map_scene"]]
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(1229, 740)
+scale = Vector2(0.79, 0.79)
+texture = ExtResource("1_bg")
+
+[node name="CollisionBlocks" type="Node2D" parent="."]
+
+[node name="EdgeLeft" parent="CollisionBlocks" instance=ExtResource("7_block")]
+position = Vector2(258, 740)
+box_size = Vector2(48, 1170)
+
+[node name="EdgeRight" parent="CollisionBlocks" instance=ExtResource("7_block")]
+position = Vector2(2200, 740)
+box_size = Vector2(48, 1170)
+
+[node name="EdgeTop" parent="CollisionBlocks" instance=ExtResource("7_block")]
+position = Vector2(1229, 155)
+box_size = Vector2(1942, 48)
+
+[node name="EdgeBottom" parent="CollisionBlocks" instance=ExtResource("7_block")]
+position = Vector2(1229, 1325)
+box_size = Vector2(1942, 48)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(900, 700)
+character_index = 0
+
+[node name="Follower1" parent="." instance=ExtResource("3_npc")]
+position = Vector2(700, 744)
+character_index = 1
+leader_path = NodePath("../Player")
+party_index = 0
+
+[node name="Follower2" parent="." instance=ExtResource("3_npc")]
+position = Vector2(700, 788)
+character_index = 2
+leader_path = NodePath("../Player")
+party_index = 1
+
+[node name="Follower3" parent="." instance=ExtResource("3_npc")]
+position = Vector2(700, 832)
+character_index = 3
+leader_path = NodePath("../Player")
+party_index = 2
+
+[node name="Enemy" parent="." instance=ExtResource("3_npc") groups=["interactable"]]
+position = Vector2(1240, 470)
+collision_layer = 1
+collision_mask = 1
+character_index = 7
+face_player = true
+
+[node name="DialoguePlayer" parent="Enemy" instance=ExtResource("4_dp")]
+dialogue_file = "res://dialogue/dialogic/timelines/room2_alone.dtl"
+
+[node name="KeyObject" parent="." instance=ExtResource("3_npc") groups=["interactable"]]
+position = Vector2(480, 720)
+collision_layer = 1
+collision_mask = 1
+character_index = 6
+
+[node name="DialoguePlayer" parent="KeyObject" instance=ExtResource("4_dp")]
+dialogue_file = "res://dialogue/dialogic/timelines/room2_key.dtl"
+
+[node name="Hint" type="Label" parent="."]
+visible = false
+offset_left = 800.0
+offset_top = 980.0
+offset_right = 1120.0
+offset_bottom = 1020.0
+text = "试用场景：WASD/方向键自由走动，队友会跟着你（RPG Maker 式跟足迹）"
+
+[node name="SpawnFromMain" type="Marker2D" parent="." groups=["map_spawn"]]
+position = Vector2(900, 700)
+script = ExtResource("6_mapspawn")
+spawn_id = &"SpawnFromMain"
+is_default = true
+facing = Vector2i(0, 1)
+
+[node name="DialogueCanvas" type="CanvasLayer" parent="."]
+
+[node name="DialogueUI" type="Control" parent="DialogueCanvas"]
+script = ExtResource("5_ui")
+
+[node name="ReturnPoint" type="Node2D" parent="." groups=["interactable"]]
+position = Vector2(1500, 900)
+
+[node name="Sprite" type="AnimatedSprite2D" parent="ReturnPoint"]
+
+[node name="DialoguePlayer" parent="ReturnPoint" instance=ExtResource("4_dp")]
+dialogue_file = "res://dialogue/dialogic/timelines/return_main.dtl"

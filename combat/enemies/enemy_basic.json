@@ -1,0 +1,14 @@
+{
+  "id": "enemy_basic",
+  "name": "敌人",
+  "max_hp": 64,
+  "art": "res://assets/portraits/enemy.png",
+  "intents": [
+    { "kind": "attack", "value": 9 },
+    { "kind": "defend", "value": 7 },
+    { "kind": "attack", "value": 6 },
+    { "kind": "debuff", "value": 1 },
+    { "kind": "buff", "value": 2 },
+    { "kind": "attack", "value": 12 }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+"@path": "res://addons/dialogic/Resources/character.gd",
+"@subpath": NodePath(""),
+&"_translation_id": "",
+&"color": Color(1, 0.8, 0.4, 1),
+&"custom_info": {
+"avatar": "",
+"party": true
+},
+&"default_portrait": "default",
+&"description": "",
+&"display_name": "问号",
+&"mirror": false,
+&"nicknames": [],
+&"offset": Vector2(0, 0),
+&"portraits": {
+"default": {
+"export_overrides": {
+"image": "res://assets/portraits/Manga.png"
+},
+"scene": ""
+}
+},
+&"scale": 1.0
+}

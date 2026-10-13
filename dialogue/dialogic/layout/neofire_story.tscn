@@ -1,0 +1,169 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://dialogue/dialogic/layout/neofire_story.gd" id="1_story"]
+[ext_resource type="Texture2D" path="res://assets/ui/dialogue/dialogue_container.png" id="2_box"]
+[ext_resource type="Texture2D" path="res://assets/ui/labels/labelAdvanced_red.png" id="3_name"]
+[ext_resource type="Texture2D" path="res://assets/ui/arrows/arrowAdvanced_red.png" id="4_arrow"]
+[ext_resource type="FontFile" path="res://theme/fonts/思源黑体.otf" id="5_font"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/bg_school.png" id="6_bg"]
+[ext_resource type="Script" path="res://addons/dialogic/Modules/Text/node_dialog_text.gd" id="7_text"]
+[ext_resource type="Script" path="res://addons/dialogic/Modules/Text/node_name_label.gd" id="8_name"]
+[ext_resource type="Script" path="res://addons/dialogic/Modules/Character/node_portrait_container.gd" id="9_portrait"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBox_box"]
+texture = ExtResource("2_box")
+texture_margin_left = 122.0
+texture_margin_top = 16.0
+texture_margin_right = 16.0
+texture_margin_bottom = 16.0
+expand_margin_left = 28.0
+expand_margin_top = 20.0
+expand_margin_right = 28.0
+expand_margin_bottom = 20.0
+
+[node name="NeofireStoryDialogue" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_story")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="BackgroundImage" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="PortraitLayer" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PortraitLeft" type="Control" parent="PortraitLayer"]
+offset_left = 0.0
+offset_top = -60.0
+offset_right = 880.0
+offset_bottom = 820.0
+mouse_filter = 2
+script = ExtResource("9_portrait")
+container_ids = PackedStringArray("left")
+
+[node name="PortraitCenter" type="Control" parent="PortraitLayer"]
+offset_left = 520.0
+offset_top = -60.0
+offset_right = 1400.0
+offset_bottom = 820.0
+mouse_filter = 2
+script = ExtResource("9_portrait")
+container_ids = PackedStringArray("center")
+
+[node name="PortraitRight" type="Control" parent="PortraitLayer"]
+offset_left = 1040.0
+offset_top = -60.0
+offset_right = 1920.0
+offset_bottom = 820.0
+mouse_filter = 2
+script = ExtResource("9_portrait")
+container_ids = PackedStringArray("right")
+
+[node name="Choices" type="VBoxContainer" parent="."]
+offset_left = 600.0
+offset_top = 340.0
+offset_right = 1320.0
+offset_bottom = 700.0
+theme_override_constants/separation = 12
+
+[node name="DialogueBox" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 158.0
+offset_top = -320.0
+offset_right = -233.0
+offset_bottom = -42.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBox_box")
+
+[node name="NamePlate" type="TextureRect" parent="DialogueBox"]
+offset_left = 133.0
+offset_top = -54.0
+offset_right = 580.0
+offset_bottom = 75.0
+mouse_filter = 2
+texture = ExtResource("3_name")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="DialogueBox/NamePlate"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -2.0
+offset_top = -10.0
+offset_right = -2.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0.13, 0.02, 0.06, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("5_font")
+theme_override_font_sizes/font_size = 40
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("8_name")
+name_label_root = NodePath("..")
+use_character_color = false
+
+[node name="TextLabel" type="RichTextLabel" parent="DialogueBox"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 212.0
+offset_top = 78.0
+offset_right = -22.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/default_color = Color(1, 1, 1, 1)
+theme_override_fonts/normal_font = ExtResource("5_font")
+theme_override_font_sizes/normal_font_size = 44
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+script = ExtResource("7_text")
+
+[node name="ContinueHint" type="TextureRect" parent="DialogueBox"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 92.0
+offset_top = -19.0
+offset_right = 179.0
+offset_bottom = 50.0
+grow_horizontal = 0
+grow_vertical = 0
+rotation = -3.1415927
+mouse_filter = 2
+texture = ExtResource("4_arrow")
+expand_mode = 1
+stretch_mode = 5

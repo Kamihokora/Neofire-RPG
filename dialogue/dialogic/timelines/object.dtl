@@ -1,0 +1,26 @@
+只是一把钥匙……
+
+焰铃: 捡起来看看！
+
+[signal arg="lock"]
+文手: 我试着捡起了钥匙！……但是太重了。
+[signal arg="unlock"]
+
+焰铃: 要不要先出去走走？
+
+- 去外面看看（测试地图）
+	焰铃: 那就出去转转。
+	[signal arg="transfer:trial/SpawnFromMain"]
+- 还是留在这里
+	焰铃: 好吧，那就算了。
+
+jump DONE
+
+label leave_1
+焰铃: 就算这么说，钥匙不在我手边。
+jump DONE
+
+label leave_3
+焰铃: 你就这么不喜欢钥匙吗？
+
+label DONE

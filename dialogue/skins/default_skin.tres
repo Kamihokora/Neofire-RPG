@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="DialogueBoxSkin" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/arrows/arrowAdvanced_red.png" id="1_rs74i"]
+[ext_resource type="FontFile" path="res://theme/fonts/思源黑体.otf" id="2_kma83"]
+[ext_resource type="Texture2D" path="res://assets/ui/labels/labelAdvanced_red.png" id="3_xu85a"]
+[ext_resource type="Texture2D" path="res://assets/ui/panels/panel_black.png" id="4_lb53x"]
+[ext_resource type="Script" path="res://dialogue/dialogue_box_skin.gd" id="5_tefmw"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBox_box"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+texture = ExtResource("4_lb53x")
+texture_margin_left = 40.0
+texture_margin_top = 40.0
+texture_margin_right = 40.0
+texture_margin_bottom = 40.0
+
+[resource]
+script = ExtResource("5_tefmw")
+panel_style = SubResource("StyleBox_box")
+box_size = Vector2(540, 156)
+name_plate_texture = ExtResource("3_xu85a")
+font = ExtResource("2_kma83")
+continue_texture = ExtResource("1_rs74i")

@@ -9,7 +9,9 @@
 [ext_resource type="PackedScene" uid="uid://b0dj5gwugyg6d" path="res://combat/combatants/opponent.tscn" id="7"]
 [ext_resource type="PackedScene" uid="uid://y66h87msahf2" path="res://dialogue/dialogue_player/dialogue_player.tscn" id="8"]
 [ext_resource type="Script" uid="uid://cx8oui15s7e7q" path="res://grid_movement/pawns/pawn.gd" id="9"]
-[ext_resource type="PackedScene" path="res://dialogue/quick_dialogue.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://grid_movement/pawns/actor_player.tscn" id="21_actor"]
+[ext_resource type="Script" path="res://grid_movement/grid/walls.gd" id="22_walls"]
+[ext_resource type="PackedScene" path="res://grid_movement/pawns/actor_npc.tscn" id="23_npc"]
 [ext_resource type="TileSet" uid="uid://vrdo8i8y4qwm" path="res://grid_movement/grid/tiles/ground_tileset.tres" id="11"]
 [ext_resource type="Texture2D" uid="uid://do71hfdbu65kx" path="res://decoration/grass.png" id="12"]
 [ext_resource type="Material" uid="uid://5na16rpclxk2" path="res://decoration/wind_sway.tres" id="13"]
@@ -23,13 +25,15 @@
 [ext_resource type="SpriteFrames" uid="uid://bbpjher8peaki" path="res://grid_movement/pawns/anim_opponent.tres" id="18_dg62l"]
 [ext_resource type="Texture2D" uid="uid://c1t05jpbpu5xm" path="res://decoration/grass_variant_upperlevel.png" id="19"]
 [ext_resource type="Texture2D" uid="uid://coirrxokxktp3" path="res://decoration/pebble_variant.png" id="20"]
+[ext_resource type="Script" uid="uid://c5hjtkmouag8b" path="res://dialogue/dialogue_ui.gd" id="20_dlgui"]
 [ext_resource type="Texture2D" uid="uid://dpkglykksi6ci" path="res://decoration/flower.png" id="21"]
 [ext_resource type="Texture2D" uid="uid://2al2y10t8agi" path="res://decoration/flower_variant.png" id="22"]
 [ext_resource type="Texture2D" uid="uid://ev5p5wpyw2ke" path="res://decoration/flower_variant_upperlevel.png" id="23"]
 [ext_resource type="Texture2D" uid="uid://cw0o0unwt13k6" path="res://decoration/flower_upperlevel.png" id="24"]
 [ext_resource type="Texture2D" uid="uid://jjitxml2ve26" path="res://decoration/bush.png" id="25"]
+[ext_resource type="Script" path="res://grid_movement/map_spawn.gd" id="26_mapspawn"]
 
-[node name="Exploration" type="Node2D" unique_id=633237882]
+[node name="Exploration" type="Node2D" unique_id=633237882 groups=["map_scene"]]
 
 [node name="Ground" type="TileMapLayer" parent="." unique_id=591932895]
 use_parent_material = true
@@ -637,21 +641,19 @@ tile_set = ExtResource("2")
 script = ExtResource("3")
 dialogue_ui = NodePath("../DialogueCanvas/DialogueUI")
 
-[node name="Player" parent="Grid" unique_id=1369758959 instance=ExtResource("4")]
-z_index = 0
+[node name="Player" parent="Grid" unique_id=1369758959 instance=ExtResource("21_actor")]
 position = Vector2(224, 288)
-script = ExtResource("14_dg62l")
-combat_actor = ExtResource("5")
-pose_anims = ExtResource("15_qps0g")
 
-[node name="Opponent" parent="Grid" unique_id=961183516 instance=ExtResource("4")]
+[node name="Opponent" parent="Grid" unique_id=961183516 instance=ExtResource("23_npc") groups=["interactable", "battle_enemy"]]
 position = Vector2(800, 480)
-script = ExtResource("6")
-combat_actor = ExtResource("7")
-pose_anims = ExtResource("18_dg62l")
+collision_layer = 1
+collision_mask = 1
+character_index = 7
+face_player = true
 
 [node name="DialoguePlayer" parent="Grid/Opponent" unique_id=459637038 instance=ExtResource("8")]
-dialogue_file = "res://dialogue/dialogue_data/npc.json"
+dialogue_file = "res://dialogue/dialogic/timelines/npc.dtl"
+style = "res://dialogue/dialogic/layout/neofire_story_style.tres"
 
 [node name="Timer" type="Timer" parent="Grid/Opponent" unique_id=403802249]
 one_shot = true
@@ -661,13 +663,13 @@ autostart = true
 visible = false
 texture = ExtResource("14")
 
-[node name="Object" type="Node2D" parent="Grid" unique_id=1438057093]
+[node name="Object" type="Node2D" parent="Grid" unique_id=1438057093 groups=["interactable"]]
 position = Vector2(544, 288)
 script = ExtResource("9")
 type = 2
 
 [node name="DialoguePlayer" parent="Grid/Object" unique_id=1157089401 instance=ExtResource("8")]
-dialogue_file = "res://dialogue/dialogue_data/object.txt"
+dialogue_file = "res://dialogue/dialogic/timelines/object.dtl"
 
 [node name="Decoration upper level" type="Node2D" parent="." unique_id=125227117]
 
@@ -1891,11 +1893,39 @@ position = Vector2(537, 710)
 scale = Vector2(0.7, 0.7)
 texture = ExtResource("19")
 
+[node name="SpawnFromTrial" type="Marker2D" parent="." groups=["map_spawn"]]
+position = Vector2(224, 288)
+script = ExtResource("26_mapspawn")
+spawn_id = &"SpawnFromTrial"
+is_default = true
+facing = Vector2i(0, 1)
+
 [node name="DialogueCanvas" type="CanvasLayer" parent="." unique_id=1168286489]
 
-[node name="DialogueUI" parent="DialogueCanvas" unique_id=1631097714 instance=ExtResource("10")]
+[node name="DialogueUI" type="Control" parent="DialogueCanvas" unique_id=1631097714]
 visible = false
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("20_dlgui")
 
-[node name="Camera2D" type="Camera2D" parent="."]
-position = Vector2(576, 377)
-zoom = Vector2(1.5, 1.5)
+[node name="Follower1" parent="Grid" instance=ExtResource("23_npc")]
+position = Vector2(224, 352)
+character_index = 1
+leader_path = NodePath("../Player")
+party_index = 0
+
+[node name="Follower2" parent="Grid" instance=ExtResource("23_npc")]
+position = Vector2(224, 416)
+character_index = 2
+leader_path = NodePath("../Player")
+party_index = 1
+
+[node name="Follower3" parent="Grid" instance=ExtResource("23_npc")]
+position = Vector2(224, 480)
+character_index = 3
+leader_path = NodePath("../Player")
+party_index = 2
+
+[node name="Walls" type="StaticBody2D" parent="."]
+script = ExtResource("22_walls")
+source_layer_path = NodePath("../Grid")

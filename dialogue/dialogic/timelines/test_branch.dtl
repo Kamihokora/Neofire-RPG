@@ -1,0 +1,7 @@
+焰铃: 你想怎么做？
+- 直接走开
+	焰铃: 好吧，那就算了。
+	[signal arg="branch_leave"]
+- 问清楚
+	焰铃: 那就问吧。
+	[signal arg="branch_ask"]

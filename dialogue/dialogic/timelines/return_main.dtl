@@ -1,0 +1,9 @@
+焰铃: 要回去了吗？
+
+- 回去
+	焰铃: 嗯，回去吧。
+	[signal arg="transfer:main/SpawnFromTrial"]
+- 再逛一会儿
+	焰铃: 好吧，再待一会儿。
+
+label DONE

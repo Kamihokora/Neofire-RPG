@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://grid_movement/pawns/actor_npc.tscn" id="1_npc"]
+[ext_resource type="PackedScene" path="res://dialogue/dialogue_player/dialogue_player.tscn" id="2_dp"]
+
+[node name="StoryEvent" instance=ExtResource("1_npc") groups=["interactable"]]
+character_index = 4
+
+[node name="DialoguePlayer" parent="." instance=ExtResource("2_dp")]

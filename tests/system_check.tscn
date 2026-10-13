@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/system_check.gd" id="1_check"]
+[ext_resource type="PackedScene" path="res://grid_movement/exploration.tscn" id="2_world"]
+[ext_resource type="PackedScene" path="res://combat/battle/battle.tscn" id="3_battle"]
+[ext_resource type="PackedScene" path="res://game.tscn" id="4_game"]
+[ext_resource type="PackedScene" path="res://grid_movement/exploration_trial.tscn" id="5_trial"]
+
+[node name="SystemCheck" type="Node"]
+script = ExtResource("1_check")
+exploration_scene = ExtResource("2_world")
+battle_scene = ExtResource("3_battle")
+game_scene = ExtResource("4_game")
+trial_scene = ExtResource("5_trial")

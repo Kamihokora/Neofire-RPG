@@ -24,6 +24,12 @@ func update_look_direction(direction: Vector2) -> void:
 	$Pivot/FacingDirection.rotation = direction.angle()
 
 
+## 走路时 position 是"换格那一刻"才变的，真正的连续位移在 $Pivot 上。
+## 跟随物（对话框等）要的是视觉位置，所以这里返回 Pivot 的世界坐标。
+func get_bubble_anchor() -> Vector2:
+	return $Pivot.global_position
+
+
 func move_to(target_position: Vector2) -> void:
 	set_process(false)
 	var move_direction := (target_position - position).normalized()
