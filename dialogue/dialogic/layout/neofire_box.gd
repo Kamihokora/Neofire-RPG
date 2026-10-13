@@ -210,6 +210,11 @@ func _build_choice_buttons() -> void:
 		# 每颗胶囊按自己的文字宽，右对齐排成一竖列
 		button.size_flags_horizontal = Control.SIZE_SHRINK_END
 		_choices.add_child(button)
+		# Dialogic 的按钮在 _ready 里把 mouse_entered 连到 grab_focus；
+		# 我们故意不用 Godot 焦点（FOCUS_NONE），那样会每悬停一次就刷一条
+		# “This control can't grab focus” 警告——直接拆掉这个连接。
+		if button.mouse_entered.is_connected(button.grab_focus):
+			button.mouse_entered.disconnect(button.grab_focus)
 	_choices.add_theme_constant_override(&"separation", int(choice_separation))
 	_choices.visible = true
 

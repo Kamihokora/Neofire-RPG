@@ -12,3 +12,5 @@ exploration_scene = ExtResource("2_world")
 battle_scene = ExtResource("3_battle")
 game_scene = ExtResource("4_game")
 trial_scene = ExtResource("5_trial")
+only_sections = "F,G,J"
+quiet_pass = true

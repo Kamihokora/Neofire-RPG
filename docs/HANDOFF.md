@@ -148,6 +148,17 @@ label leave_1                      ← 玩家在队内角色说话时走开 → 
 
 ---
 
+## 5.1 ⚠ 不要把注释写进 .tscn（我踩过，会把整个场景搞成“加载失败”）
+
+- 我在 `actor_player.tscn` 的 `[node ...]` **头部之前**加了 `## ...` 注释行，结果编辑器报：
+  “由于缺少依赖项，加载失败：`actor_player.tscn` / `exploration.tscn`” —— 而文件本身就在盘上、什么都没删。
+- 原因：`.tscn` 的解析器对**节点块内部**的 `#` 行容忍，但在 `[node ...]` 之前的注释会被当成“属性名”解析失败，
+  这个资源就整个加载不了（依赖它的 `exploration.tscn` / `system_check.tscn` 跟着报错）。
+- 规矩：**.tscn 里一行注释也别写**（把解释写在对应的 .gd / 本文件里）；
+  已经全部清掉了：`actor_player.tscn` / `actor_npc.tscn` / `neofire_box.tscn` / 新增的三个预制体。
+- 自查手段：`godot_get_node_properties(scene, ".")` —— 能返回属性 = 场景能加载；
+  或看编辑器是否弹“缺少依赖项”。
+
 ## 6. 还没做的（用户知道，按优先级）
 
 1. **地图/碰撞**：手绘地图（参考 `neofire/background_test2.png`，2458×1481）还没接。目前两套地图：旧 tilemap 版（有碰撞）和试用版（只有背景图、无碰撞）。接了手绘图后：继续在 Grid 图层画墙（src≥3）自动生成碰撞，或自己摆碰撞盒（把 `Walls` 的脚本摘掉）。
@@ -364,6 +375,119 @@ label leave_1                      ← 玩家在队内角色说话时走开 → 
 - 自检新增段 N：`N1` 房间默认 = 1.5；`N2` 缩放栈（后请求生效 + 逐层收回）；`N3` 调查对话 1.7 且结束回 1.5；
   `N4` 判定区踩进去改缩放、走出去还原。
 - ⚠ 注意：`zoom 1.5` 会影响 H2/H2b 那类“屏幕空间”断言吗？不会——对话气泡在 CanvasLayer（屏幕空间），相机缩放只通过 `canvas_transform` 影响锚点换算。
+
+## 13. 协作约定（省 token 版，2026-10-13 晚新共识）
+
+用户明确要求：**不要再全量跑自检**（太烧 token）。今后：
+
+1. **事实来源 = `docs/HANDOFF.md` + `README.md`**：新任务先读这两份，别把整个项目文件翻一遍。
+2. **改动只 lint，不自检**：`godot_lint_scripts` 跑解析；小改不跑整份 `system_check`。
+3. **要验证就写进自检 + 让用户跑**：把新断言加到 `tests/system_check.gd`，用户本地 F6 回结论。
+4. **读文件用 offset/limit 只取要改的一段**；截图先压半尺寸再看。
+5. **每个阶段结束把“下一步/参考文件路径”写进本文件**（§14 起），断了下一轮也能无缝接。
+
+## 14. 战斗系统推进（路线 + sts2 参考）
+
+用户原话：战斗系统的基础内容都能在 `B:/Godot/sts2modding` 里找到（先看 C#），
+核心目标 = **复刻成可读性/可更正性更高的 .gd**；出牌太平淡，可参考 sts2 的版式，精灵图也先直接借过来，之后再替换。
+
+### 14.1 sts2 C# 参考目录（先看这些）
+
+- `B:/Godot/sts2modding/src/Core/Combat/`：`CombatManager.cs` / `CombatState.cs` / `CombatSide.cs`
+  - `History/Entries/`：`CardPlayStartedEntry.cs` / `CardPlayFinishedEntry.cs` / `DamageReceivedEntry.cs` / `MonsterPerformedMoveEntry.cs` / `EnergySpentEntry.cs` / `BlockGainedEntry.cs`
+- `src/Core/Entities/Cards/`（卡牌实体）、`Entities/Creatures/`（怪）、`Entities/Intents/`（意图）、`Entities/Powers/`（力量/易伤等状态）
+- `src/Core/Commands/CardCmd.cs` / `PowerCmd.cs`（出牌/状态效果的执行命令）
+- 意图精灵图：`sts2modding/images/packed/intents/...`（已经抄进 `assets/ui/intents/`，md5 一致）
+
+### 14.2 刚修的第一个小 bug：进入战斗后玩家不掉血
+
+- 根因：`combat/battle/battle.gd::_rebuild_party` 第一次搭建我方 HP 条时结构是
+  `Party(row HBox → col VBox → Hp ProgressBar)`，但刷新分支里 `slot.get_node_or_null("Hp")`（slot=row）
+  拿的是 `row/Hp` → **null** → 我方 HP 条永远停在初始值，`player_hp` 其实掉到了 63 但界面上永远是 72/72。
+- 修法：加缓存引用 `_party_hp_bar` / `_party_info_label`（首次搭建时填，之后直接改值）。
+- 回归：自检 `F18 敌人回合会打我，我方 HP 条跟着掉`。
+
+### 14.3 已完成的第一批战斗优化（2026-10-13 晚，未跑自检、未提交 git）
+
+- **玩家不掉血 bug 已修**（见 14.2）：`_rebuild_party` 缓存 `_party_hp_bar`/`_party_info_label` 后直接改值；回归 `F18`。
+- **出牌手感**：
+  - `card_view.gd`：悬停抬手 + 提亮（`mouse_entered/exited` → scale 1.07 + self_modulate，disabled 不亮）；
+    新增 `_frame`（稀有度卡框 TextureRect，`STRETCH_SCALE` 填满）+ 类型色带改半透明。
+  - `battle.gd::_animate_card_play`：牌从手牌容器摘出来（容器会接管 position）→ 抬大 → **飞向敌人** → 淡出 → queue_free；
+    命中后的震屏/闪白/伤害数字本来就接在 `_damage_enemy` 里。
+- **稀有度区分**（sts2 那套：金 > 紫 > 蓝 > 灰）：
+  `card_view.gd` 的 `RARITY_FRAMES`（dobo 卡片框 `card_black/blue/purple/yellow.png`，已拷进 `assets/ui/cards/`）
+  + `RARITY_COLORS`（标题颜色）。`writer_form`=rare(金)，`ink_slash`=basic(灰)。回归 `F19`。
+- **战斗面板换肤**（`battle.gd::_style_controls()`，`_ready` 里调）：
+  结束回合/形态/看牌堆/弃牌堆四个按钮 → dobo 胶囊（`button_black` normal / `button_red` hover，9-slice margin 24）；
+  敌人血条/右侧量表 → 红/蓝前景 + 深色底（StyleBoxFlat）。
+- 素材新增：`assets/ui/cards/card_black|blue|purple|yellow.png`、`assets/ui/buttons/button_black|red.png`（都从 Things_for_Agent 拷）。
+
+### 14.4 下一步（战斗面板继续美化 + 遗物→四角色被动）
+
+- 战斗面板还没动的地方：我方 Party 框 / 右侧量表 / 敌人区域 的背景面板（可用 dobo `Panels/panel_black.png`）；
+  手牌弧线铺底、能量/回合/意图的 sts2 式排版（参考 `sts2modding/src/Core/Combat/` 的节点树）。
+- 遗物系统（用户回忆缺失）→ 改造成 RPG 后，遗物可能变成**四个角色的被动**；目前四个角色还没有独立的菜单/数值面板。
+  先战斗，角色被动/菜单是独立一块（要做之前先和用户对需求）。
+
+### 14.4 已完成第二批（按 sts2 源码复刻；2026-10-13 深夜，未跑自检、未提交）
+
+读的 sts2 源码：`src/Core/Nodes/Combat/`（`NCardPlay.cs` / `NCardPlayQueue.cs` / `NCombatCardPile.cs` / `NDrawPileButton.cs` /
+`NDiscardPileButton.cs` / `NCombatPilesContainer.cs`）。
+
+- **卡牌打出效果（按 NCardPlay.CenterCard）**：`battle.gd` 里 `_on_card_pressed` 改成
+  `_lift_card_to_center()`（从手牌容器摘出 → 抬到屏幕中轴贴底 → 缩到 0.78）→ `play_card()` 结算效果 →
+  `_send_card_away()`（再缩一下 + 淡出）。不再“飞向敌人”（sts2 是抬到中间，伤害表现交给 VFX/震屏）。
+- **牌堆按钮（按 NCombatCardPile）**：用 sts2 精灵图 `images/packed/combat_ui/{draw_pile,discard_pile,pile_button_count}.png`
+  （已拷到 `assets/ui/combat/`）；按钮变成“图标 + 右下数字徽章”，悬停放大 1.18、数量变化时弹一下；
+  位置：抽牌堆左下 (40,838)、弃牌堆右下 (1760,838)；尺寸 120×126。
+- **点牌堆看牌（按 NCardPileScreen）**：`pile_view.gd` 重写成**卡面网格**（不再列文字）：
+  8 列 GridContainer + ScrollContainer + dobo 黑面板，卡面直接复用 `BattleCardView`（缩 0.85），
+  排序 = 稀有度降 → 费用升 → 名字。自检 `F12` 改成查图标/徽章；`F13` 仍旧数 `_rows` 子节点数。
+- **踩的坑（已在 §5 同类里）**：`BattleCardView` 的子节点（label/卡框）是在 `_ready` 里建的，
+  **必须先 `_rows.add_child(cell)` 再 `view.setup(data)`**；否则 `_ready` 没跑，`setup` 会往 null 上写 `text`
+  → 报 `base object of type 'Nil'`（栈顶在 `card_view.gd` 的 `_cost.text = ...`）。`setup()` 里已加了防御性 warning。
+- **删掉「文手形态」能力卡**（用户要求：有按钮能直接开形态，这张卡意义不明）：
+  `cards.json` / `starting_deck.json` 都删了；`G` 段测试改成用 `_form_button`（G1 形态值不满→按钮不可用，
+  G2 满足→可用，G3 点按钮触发立绘切入，G4-G9 不变）；`F8` 卡数阈值 15→14；
+  `F19` 改成“当前卡池至少 3 档稀有度 + 4 套卡框映射”（删卡后没有 rare 卡了）。
+
+### 14.5 下一步
+
+- 手牌还是 HBoxContainer：sts2 的手牌是 `NHandCardHolder` 自己管位置（悬停上抬/扇形展开），
+  想要那个手感就得把手牌改成自排版（不再用 HBox）。
+- 战斗面板还没动：我方 Party 框/右侧量表/敌人区域的背景面板；能量/回合/意图的 sts2 式排版（`NCombatUi.cs` 422 行可参考）。
+- 遗物系统 → 四个角色的被动（需要先和用户对需求）；角色菜单/数值面板也还没做。
+
+### 14.6 第六轮：走路发抖 + 调试控制台降噪（2026-10-13 深夜，未跑自检、未提交）
+
+用户反馈：“人物在行走的时候不知道为啥一直在抖”。
+
+- **根因（两个，都是经典坑）**：
+  1. `CharacterBody2D.motion_mode` 默认是 **GROUNDED**：俯视地图里的地面吸附/斜坡判定（`floor_snap_length`）会让贴着墙走的身体每帧被吸一下 → 抖。
+     → `actor_player.tscn` / `actor_npc.tscn` 都改成 `motion_mode = 1`（FLOATING）。
+  2. `Camera2D.process_callback` 默认是 **IDLE**，而玩家是在 `_physics_process` 里移动的：
+     平滑跟随会在两次物理帧之间追一半又回一点 → 画面持续抖（人越跑越快时最明显）。
+     → `Player/Camera` 改成 `process_callback = 0`（PHYSICS），跟玩家同一个节拍。
+- **回归断言**：`J11` 物理位移无倒退步且确实在前进；`J12` **屏幕**位移也无倒退步（专门盯相机抖动）。
+  断言的 debug 行会把每一步的位移打出来（world/screen 各一串 28 个数），下次抖了能直接看出是物理还是相机。
+- **控制台降噪**（用户在走 debug， warnings 很吵）：
+  - Dialogic 的选项按钮在 `_ready` 里把 `mouse_entered` 连到 `grab_focus`，而我们故意用 `FOCUS_NONE` →
+    每悬停一次刷一条 “This control can't grab focus”。已在 `neofire_box._build_choice_buttons` 里拆掉这个连接。
+  - 项目设置 `dialogic/choices/autofocus_first = false`（我们自己的 `_choice_index` + 小箭头才是选中，
+    Dialogic 再 grab_focus 一次只会多一条警告）。
+
+### 14.7 第七轮：自检可以“只跑指定段”（省 token，用户要求）
+
+- `tests/system_check.gd` 新增两个导出（在 `tests/system_check.tscn` 检查器里改）：
+  - `only_sections: String` —— 只跑指定段，逗号分隔，例 `"F,G,J"`；**留空 = 全跑**。
+  - `quiet_pass: bool` —— true 时报告里**不写 [PASS] 行**（只写 [FAIL] + [debug] + 结论行），于是一个“全绿”的验证只需要几十行。
+- 也支持命令行：`godot --path . -- --only=F,G --quiet`（`OS.get_cmdline_user_args()`）。
+- 段号：A集成 B外观 C剧本 D分支 E存档 F战斗 G形态 H游戏内 J自由移动 K队友 L转移 M编辑器 N相机。
+- 报告开头会写一行 `（本次范围：F,G,J · 静默通过）`，粘给别人时一看就知道没跑全。
+- 为了让“只跑一段”也能跑通，补了 `_ensure_world()`（C/D/E 开头自己现搭探索世界，不再依赖别的段先跑过）。
+- **当前 `.tscn` 里预设的是 `only_sections = "F,G,J"` + `quiet_pass = true`**（正好是要验证的那几段）。
+  ⚠ 以后要全量跑、或者要给别人看完整报告时，**把 `only_sections` 清空、`quiet_pass` 关掉**。
 
 ## 12. 还没做（汇总）
 

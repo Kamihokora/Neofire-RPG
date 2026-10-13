@@ -15,6 +15,13 @@ extends Node
 @export var game_scene: PackedScene
 @export var trial_scene: PackedScene
 
+@export_group("自检范围（省 token）")
+## 只跑这几段，逗号分隔，比如 "F,G,J"；留空 = 全部跑。
+## 段号 = 报告里的段标题字母：A集成 B外观 C剧本 D分支 E存档 F战斗 G形态 H游戏内 J自由移动 K队友 L转移 M编辑器 N相机
+@export var only_sections: String = ""
+## true = 报告里只写失败行和 debug 行（通过的省略），结论行照样给
+@export var quiet_pass: bool = false
+
 const REPORT := "res://debug_shots/system_check.txt"
 const TL_DIR := "res://dialogue/dialogic/timelines/"
 const CHAR_DIR := "res://dialogue/dialogic/characters/"
@@ -23,6 +30,8 @@ const CUTIN_ART := "res://assets/portraits/xinhuo_normal.png"
 var _lines: Array[String] = []
 var _pass := 0
 var _fail := 0
+## 要跑的段（空 = 全跑）
+var _wanted: PackedStringArray = PackedStringArray()
 var _zombies_cleaned: Array[String] = []
 
 var _layout: Node = null
@@ -39,10 +48,38 @@ var _signals: Array[String] = []
 func _check(label: String, ok: bool, detail: String = "") -> void:
 	if ok:
 		_pass += 1
-		_write("[PASS] %s %s" % [label, detail])
+		if not quiet_pass:
+			_write("[PASS] %s %s" % [label, detail])
 	else:
 		_fail += 1
 		_write("[FAIL] %s %s" % [label, detail])
+
+
+## 这一段要不要跑（only_sections 为空 = 全跑）
+func _want(section: String) -> bool:
+	return _wanted.is_empty() or _wanted.has(section)
+
+
+## 命令行也能筛：godot --path . -- --only=F,G --quiet
+func _parse_scope() -> void:
+	var raw := only_sections
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--only="):
+			raw = arg.trim_prefix("--only=")
+		elif arg == "--quiet":
+			quiet_pass = true
+	_wanted = PackedStringArray()
+	for part: String in raw.split(","):
+		var s := part.strip_edges().to_upper()
+		if not s.is_empty() and not _wanted.has(s):
+			_wanted.append(s)
+
+
+## 需要一个能用的探索世界：C/D/E 这些段都要。只跑那一段时现搭一个，别依赖别人先跑过。
+func _ensure_world() -> void:
+	if _world != null and is_instance_valid(_world) and _player != null and is_instance_valid(_player):
+		return
+	await _spawn_world()
 
 
 func _eq(label: String, actual: Variant, expected: Variant) -> void:
@@ -179,21 +216,39 @@ func _cleanup_zombie_scenes() -> Array[String]:
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://debug_shots"))
+	_parse_scope()
 	_zombies_cleaned = _cleanup_zombie_scenes()
 	await get_tree().process_frame
-	_check_dialogic_setup()
-	await _check_appearance()
-	await _check_script_behaviour()
-	await _check_branch()
-	await _check_save()
-	await _check_battle()
-	await _check_form_cutin()
-	await _check_in_game()
-	await _check_free_move()
-	await _check_party_and_trial()
-	await _check_map_transfer()
-	await _check_editor_tools()
-	await _check_camera_zoom()
+	if not _wanted.is_empty() or quiet_pass:
+		_write("（本次范围：%s%s）"
+			% [",".join(_wanted) if not _wanted.is_empty() else "全部",
+				" · 静默通过" if quiet_pass else ""])
+	if _want("A"):
+		_check_dialogic_setup()
+	if _want("B"):
+		await _check_appearance()
+	if _want("C"):
+		await _check_script_behaviour()
+	if _want("D"):
+		await _check_branch()
+	if _want("E"):
+		await _check_save()
+	if _want("F"):
+		await _check_battle()
+	if _want("G"):
+		await _check_form_cutin()
+	if _want("H"):
+		await _check_in_game()
+	if _want("J"):
+		await _check_free_move()
+	if _want("K"):
+		await _check_party_and_trial()
+	if _want("L"):
+		await _check_map_transfer()
+	if _want("M"):
+		await _check_editor_tools()
+	if _want("N"):
+		await _check_camera_zoom()
 
 	_write("")
 	_write("===== 结果：%d 通过 / %d 失败 =====" % [_pass, _fail])
@@ -387,6 +442,7 @@ func _check_appearance() -> void:
 
 
 func _play_object() -> void:
+	await _ensure_world()
 	_player.position = _obj.position + Vector2(-64, 0)
 	_player.set_active(true)
 	_ui.show_dialogue(_player, _dp)
@@ -614,6 +670,42 @@ func _check_free_move() -> void:
 		"当前动画=%s" % player.get_node("Sprite").animation)
 	Input.action_release(&"move_right")
 	await get_tree().physics_frame
+
+	# 走路抖动：物理位移与屏幕位移都不应该出现“倒退步”。
+	# （地面吸附没关会每帧被吸一下；相机在物理帧之间平滑追赶也会让画面持续抖。）
+	var world_steps: Array[float] = []
+	var screen_steps: Array[float] = []
+	var prev_world: Vector2 = player.global_position
+	var prev_screen: Vector2 = (player.get_node("Sprite") as Node2D).get_global_transform_with_canvas().origin
+	Input.action_press(&"move_right")
+	for i in 28:
+		await get_tree().physics_frame
+		var w: Vector2 = player.global_position
+		var s: Vector2 = (player.get_node("Sprite") as Node2D).get_global_transform_with_canvas().origin
+		world_steps.append(w.x - prev_world.x)
+		screen_steps.append(s.x - prev_screen.x)
+		prev_world = w
+		prev_screen = s
+	Input.action_release(&"move_right")
+	await get_tree().physics_frame
+	var world_back := 0
+	var screen_back := 0
+	var world_forward := 0
+	for d: float in world_steps:
+		if d < -0.01:
+			world_back += 1
+		elif d > 0.01:
+			world_forward += 1
+	for d: float in screen_steps:
+		if d < -0.01:
+			screen_back += 1
+	_write("  [debug] 走路步长 world=%s" % [world_steps.map(func(d: float) -> String: return "%.2f" % d)])
+	_write("  [debug] 走路步长 screen=%s" % [screen_steps.map(func(d: float) -> String: return "%.2f" % d)])
+	_check("J11 走路不抖：物理位移没有倒退步，而且真的在前进",
+		world_back == 0 and world_forward >= 20,
+		"倒退步=%d 前进步=%d / %d" % [world_back, world_forward, world_steps.size()])
+	_check("J12 走路不抖：屏幕位移没有倒退步（相机没在物理帧之间追一半）",
+		screen_back == 0, "倒退步=%d / %d" % [screen_back, screen_steps.size()])
 
 	await _shoot("check_free_move")
 
@@ -879,6 +971,7 @@ func _check_script_behaviour() -> void:
 
 func _check_branch() -> void:
 	_section("D. 分支选项（test_branch.dtl）")
+	await _ensure_world()
 	Dialogic.signal_event.connect(_on_signal)
 	_signals.clear()
 	_player.position = _obj.position + Vector2(-64, 0)
@@ -1084,7 +1177,7 @@ func _check_battle() -> void:
 		"能量=%d 手牌=%d" % [battle.energy, battle.hand.size()])
 	_check("F7 应援值在开局转化为形态值", RunState.instance.support_value == 0 and RunState.instance.form_value == 4,
 		"应援=%d 形态值=%d" % [RunState.instance.support_value, RunState.instance.form_value])
-	_check("F8 卡牌 JSON 资源可读", CardDB.all().size() >= 15 and CardDB.get_card("ink_slash") != null,
+	_check("F8 卡牌 JSON 资源可读", CardDB.all().size() >= 14 and CardDB.get_card("ink_slash") != null,
 		"卡数=%d ink_slash=%s" % [CardDB.all().size(), CardDB.has_card("ink_slash")])
 	# 参考图要求：敌人在正中间、右侧竖排应援量表
 	_check("F9 敌人水平居中", absf(enemy_rect.get_center().x - view.x * 0.5) <= 20.0,
@@ -1097,12 +1190,21 @@ func _check_battle() -> void:
 		"量表 rect=%s fill_mode=%d" % [gauge_rect, bar.fill_mode])
 	_check("F11 回合指示", battle.get_node("Turn").text.contains("回合"), "'%s'" % battle.get_node("Turn").text)
 
-	# 弃牌堆 / 抽卡堆可查看
+	# 弃牌堆 / 抽卡堆：图标（sts2 精灵图）+ 数字徽章，可点开看牌
 	var draw_btn: Button = battle.get_node("PileDraw")
 	var disc_btn: Button = battle.get_node("PileDiscard")
-	_check("F12 牌堆按钮显示张数",
-		draw_btn.text == "抽牌堆 %d" % battle.draw_pile.size() and disc_btn.text == "弃牌堆 %d" % battle.discard_pile.size(),
-		"'%s' / '%s'" % [draw_btn.text, disc_btn.text])
+	var draw_count := draw_btn.get_node_or_null(^"CountBadge/Count") as Label
+	var disc_count := disc_btn.get_node_or_null(^"CountBadge/Count") as Label
+	_check("F12 牌堆按钮：用 sts2 精灵图 + 数字徽章",
+		(draw_btn.get_node_or_null(^"Icon") as TextureRect) != null
+			and (draw_btn.get_node_or_null(^"Icon") as TextureRect).texture != null
+			and draw_count != null and disc_count != null
+			and draw_count.text == str(battle.draw_pile.size())
+			and disc_count.text == str(battle.discard_pile.size()),
+		"抽=%s 弃=%s 图标=%s"
+			% [draw_count.text if draw_count != null else "无",
+				disc_count.text if disc_count != null else "无",
+				(draw_btn.get_node(^"Icon") as TextureRect).texture.resource_path if draw_btn.get_node_or_null(^"Icon") != null else "无"])
 	battle._on_pile_draw_pressed()
 	await get_tree().create_timer(0.2).timeout
 	var pile: BattlePileView = battle.get_node("PileView")
@@ -1164,6 +1266,33 @@ func _check_battle() -> void:
 					next_card, battle.hand[0] if battle.hand.size() > 0 else "空", click_pos])
 	else:
 		_check("F17 鼠标点击手牌能出牌", false, "手里没牌")
+
+	# 敌人回合真的会打我：HP 条藏在 row→col→Hp 两层下面，直接 get_node 会拿到 null
+	# → 我方 HP 永远停在初始值（看起来“被打也不掉血”）。缓存引用后要真的跟着掉。
+	var hp_before: int = battle.player_hp
+	battle._enemy_turn()
+	await get_tree().create_timer(1.5).timeout
+	var hp_after: int = battle.player_hp
+	var hp_bar: ProgressBar = battle._party_hp_bar
+	_check("F18 敌人回合会打我，我方 HP 条跟着掉",
+		hp_after < hp_before and hp_bar != null and int(hp_bar.value) == hp_after,
+		"HP %d→%d 条=%s" % [hp_before, hp_after, str(hp_bar.value) if hp_bar != null else "无"])
+
+	# 稀有度区分（sts2 那套：金 > 紫 > 蓝 > 灰）
+	var rarities: Array[int] = []
+	var frames: Array[String] = []
+	for id: Variant in CardDB.all():
+		var c: CardData = CardDB.get_card(str(id))
+		if c == null:
+			continue
+		if not rarities.has(c.rarity):
+			rarities.append(c.rarity)
+		var path := str(BattleCardView.RARITY_FRAMES.get(c.rarity, ""))
+		if not frames.has(path):
+			frames.append(path)
+	_check("F19 卡牌有稀有度区分（卡框/标题颜色按稀有度不同，当前卡池至少 3 档）",
+		rarities.size() >= 3 and frames.size() >= 3 and BattleCardView.RARITY_COLORS.size() == 4,
+		"出现过的稀有度=%s 卡框种类=%d" % [rarities, frames.size()])
 
 	await _shoot("check_battle_layout")
 	battle.queue_free()
@@ -1438,7 +1567,7 @@ func _check_editor_tools() -> void:
 	var spawn: MapSpawn = spawn_scene.instantiate() if spawn_scene != null else null
 	_check("M5 落点预制体：Marker2D + map_spawn 组（拖到哪就落在哪）",
 		spawn != null and spawn is Marker2D and spawn.spawn_id == &"Spawn1",
-		"spawn_id=%s" % [spawn.spawn_id if spawn != null else "无"])
+		"spawn_id=%s" % [str(spawn.spawn_id) if spawn != null else "无"])
 	if spawn != null:
 		spawn.queue_free()
 
@@ -1555,7 +1684,7 @@ func _check_camera_zoom() -> void:
 ################################################################################
 
 func _check_form_cutin() -> void:
-	_section("G. 形态切换 + 全身立绘切入（由卡牌触发）")
+	_section("G. 形态切换 + 全身立绘切入（由按钮触发）")
 	RunState.instance.reset_run()
 	var battle: CanvasLayer = battle_scene.instantiate()
 	add_child(battle)
@@ -1563,25 +1692,23 @@ func _check_form_cutin() -> void:
 	battle.initialize([])
 	await get_tree().create_timer(0.6).timeout
 
-	# 把「文手形态」这张卡塞进手里；形态值不满时应该打不出去
-	battle.hand.append("writer_form")
-	battle._rebuild_hand()
-	await get_tree().create_timer(0.2).timeout
-	var card: CardData = CardDB.get_card("writer_form")
-	_check("G1 形态值不满时「文手形态」卡不可打", not battle._can_play(card),
-		"形态值=%d can_play=%s" % [RunState.instance.form_value, battle._can_play(card)])
+	# 形态值不满 → 按钮不可用，点了也开不了
+	_check("G1 形态值不满时「进入文手形态」按钮不可用",
+		RunState.instance.form_value < RunState.instance.FORM_COST and battle._form_button.disabled,
+		"形态值=%d 按钮disabled=%s" % [RunState.instance.form_value, battle._form_button.disabled])
 
-	# 攒满形态值 → 卡可打 → 打出去应该触发全身立绘切入
+	# 攒满形态值 → 按钮可用 → 点一下应该触发全身立绘切入
 	RunState.instance.set_form_value(RunState.instance.FORM_COST)
-	battle._rebuild_hand()
+	battle._update_ui()
 	await get_tree().create_timer(0.2).timeout
-	_check("G2 形态值满后该卡可打", battle._can_play(card), "形态值=%d" % RunState.instance.form_value)
+	_check("G2 形态值满后按钮可用", not battle._form_button.disabled,
+		"形态值=%d disabled=%s" % [RunState.instance.form_value, battle._form_button.disabled])
 
-	battle.play_card(battle.hand.find("writer_form"))   # 故意不 await，好在演出中途断言
+	battle._on_form_button_pressed()   # 故意不 await，好在演出中途断言
 	await get_tree().create_timer(0.35).timeout
 	var cutin: Control = battle.get_node("CutIn")
 	var art: TextureRect = battle.get_node("CutIn/Art")
-	_check("G3 打出该卡触发全屏立绘切入", cutin.visible, "CutIn.visible=%s" % cutin.visible)
+	_check("G3 点按钮触发全屏立绘切入", cutin.visible, "CutIn.visible=%s" % cutin.visible)
 	await _shoot("check_form_cutin")
 	_check("G4 切入用的是新火娘全身立绘", art.texture != null and art.texture.resource_path == CUTIN_ART,
 		"%s" % [art.texture.resource_path if art.texture else "无"])

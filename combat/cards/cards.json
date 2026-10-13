@@ -7,7 +7,16 @@
       "type": "attack",
       "rarity": "basic",
       "description": "造成 4 点伤害。抽 1 张牌。",
-      "effects": [{ "kind": "damage", "value": 4 }, { "kind": "draw", "value": 1 }]
+      "effects": [
+        {
+          "kind": "damage",
+          "value": 4
+        },
+        {
+          "kind": "draw",
+          "value": 1
+        }
+      ]
     },
     "ink_slash": {
       "name": "泼墨",
@@ -15,7 +24,12 @@
       "type": "attack",
       "rarity": "basic",
       "description": "造成 6 点伤害。",
-      "effects": [{ "kind": "damage", "value": 6 }]
+      "effects": [
+        {
+          "kind": "damage",
+          "value": 6
+        }
+      ]
     },
     "blot": {
       "name": "涂抹",
@@ -23,7 +37,12 @@
       "type": "attack",
       "rarity": "basic",
       "description": "造成 3 点伤害。",
-      "effects": [{ "kind": "damage", "value": 3 }]
+      "effects": [
+        {
+          "kind": "damage",
+          "value": 3
+        }
+      ]
     },
     "revise": {
       "name": "修订",
@@ -31,7 +50,12 @@
       "type": "attack",
       "rarity": "uncommon",
       "description": "造成 12 点伤害。",
-      "effects": [{ "kind": "damage", "value": 12 }]
+      "effects": [
+        {
+          "kind": "damage",
+          "value": 12
+        }
+      ]
     },
     "flourish": {
       "name": "收笔",
@@ -39,7 +63,16 @@
       "type": "attack",
       "rarity": "uncommon",
       "description": "造成 8 点伤害，获得 5 点格挡。",
-      "effects": [{ "kind": "damage", "value": 8 }, { "kind": "block", "value": 5 }]
+      "effects": [
+        {
+          "kind": "damage",
+          "value": 8
+        },
+        {
+          "kind": "block",
+          "value": 5
+        }
+      ]
     },
     "blank_page": {
       "name": "空白页",
@@ -47,7 +80,12 @@
       "type": "skill",
       "rarity": "basic",
       "description": "获得 5 点格挡。",
-      "effects": [{ "kind": "block", "value": 5 }]
+      "effects": [
+        {
+          "kind": "block",
+          "value": 5
+        }
+      ]
     },
     "margins": {
       "name": "页边距",
@@ -55,7 +93,16 @@
       "type": "skill",
       "rarity": "basic",
       "description": "获得 8 点格挡，获得 1 点形态值。",
-      "effects": [{ "kind": "block", "value": 8 }, { "kind": "form", "value": 1 }]
+      "effects": [
+        {
+          "kind": "block",
+          "value": 8
+        },
+        {
+          "kind": "form",
+          "value": 1
+        }
+      ]
     },
     "bookmark": {
       "name": "书签",
@@ -63,7 +110,12 @@
       "type": "skill",
       "rarity": "basic",
       "description": "获得 3 点格挡。",
-      "effects": [{ "kind": "block", "value": 3 }]
+      "effects": [
+        {
+          "kind": "block",
+          "value": 3
+        }
+      ]
     },
     "inspiration": {
       "name": "灵感",
@@ -71,7 +123,16 @@
       "type": "skill",
       "rarity": "common",
       "description": "抽 2 张牌，获得 1 点形态值。",
-      "effects": [{ "kind": "draw", "value": 2 }, { "kind": "form", "value": 1 }]
+      "effects": [
+        {
+          "kind": "draw",
+          "value": 2
+        },
+        {
+          "kind": "form",
+          "value": 1
+        }
+      ]
     },
     "manuscript": {
       "name": "手稿",
@@ -79,7 +140,16 @@
       "type": "skill",
       "rarity": "common",
       "description": "获得 8 点格挡，抽 1 张牌。",
-      "effects": [{ "kind": "block", "value": 8 }, { "kind": "draw", "value": 1 }]
+      "effects": [
+        {
+          "kind": "block",
+          "value": 8
+        },
+        {
+          "kind": "draw",
+          "value": 1
+        }
+      ]
     },
     "cross_out": {
       "name": "划掉重写",
@@ -87,7 +157,16 @@
       "type": "skill",
       "rarity": "uncommon",
       "description": "对敌人施加 2 层虚弱。获得 3 点形态值。",
-      "effects": [{ "kind": "weak", "value": 2 }, { "kind": "form", "value": 3 }]
+      "effects": [
+        {
+          "kind": "weak",
+          "value": 2
+        },
+        {
+          "kind": "form",
+          "value": 3
+        }
+      ]
     },
     "field_notes": {
       "name": "采风",
@@ -95,7 +174,12 @@
       "type": "talk",
       "rarity": "common",
       "description": "获得 4 点形态值。",
-      "effects": [{ "kind": "form", "value": 4 }]
+      "effects": [
+        {
+          "kind": "form",
+          "value": 4
+        }
+      ]
     },
     "opening_line": {
       "name": "攀谈",
@@ -103,15 +187,16 @@
       "type": "talk",
       "rarity": "basic",
       "description": "获得 2 点形态值，获得 3 点格挡。",
-      "effects": [{ "kind": "form", "value": 2 }, { "kind": "block", "value": 3 }]
-    },
-    "writer_form": {
-      "name": "文手形态",
-      "cost": 2,
-      "type": "power",
-      "rarity": "rare",
-      "description": "消耗形态值进入文手形态，持续 5 回合。",
-      "effects": [{ "kind": "enter_form", "value": 0 }]
+      "effects": [
+        {
+          "kind": "form",
+          "value": 2
+        },
+        {
+          "kind": "block",
+          "value": 3
+        }
+      ]
     },
     "read_aloud": {
       "name": "朗读",
@@ -120,7 +205,20 @@
       "rarity": "uncommon",
       "form_only": true,
       "description": "【文手形态】造成 10 点伤害，获得 6 点格挡，好感度 +10。",
-      "effects": [{ "kind": "damage", "value": 10 }, { "kind": "block", "value": 6 }, { "kind": "mercy", "value": 10 }]
+      "effects": [
+        {
+          "kind": "damage",
+          "value": 10
+        },
+        {
+          "kind": "block",
+          "value": 6
+        },
+        {
+          "kind": "mercy",
+          "value": 10
+        }
+      ]
     }
   }
 }

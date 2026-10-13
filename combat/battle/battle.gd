@@ -55,8 +55,13 @@ var hand: Array[String] = []
 var turn := 0
 var _shake_tweens: Dictionary = {}
 var _party_avatar: TextureRect = null
+## 我方 HP 条 / 状态文本的缓存引用（第一次搭建时填上，之后直接改值）
+var _party_hp_bar: ProgressBar = null
+var _party_info_label: Label = null
 var _busy := false
 var _over := false
+## 牌堆按钮上一次显示的数量（变了才弹动画）
+var _pile_counts: Dictionary = {}
 var _form_entered_this_turn := false
 #endregion
 
@@ -90,8 +95,134 @@ func _ready() -> void:
 	_form_button.pressed.connect(_on_form_button_pressed)
 	_pile_draw.pressed.connect(_on_pile_draw_pressed)
 	_pile_discard.pressed.connect(_on_pile_discard_pressed)
+	_style_controls()
 	if auto_start:
 		start_battle()
+
+
+## 战斗面板换肤：按钮用 dobo 胶囊，血条/量表换红色/蓝色前景 + 深色底
+func _style_controls() -> void:
+	var red := _button_style("res://assets/ui/buttons/button_red.png")
+	var black := _button_style("res://assets/ui/buttons/button_black.png")
+	for button: Button in [_end_turn_button, _form_button]:
+		button.add_theme_stylebox_override(&"normal", black)
+		button.add_theme_stylebox_override(&"hover", red)
+		button.add_theme_stylebox_override(&"pressed", black)
+		button.add_theme_stylebox_override(&"focus", red)
+		button.add_theme_font_size_override(&"font_size", 22)
+		button.add_theme_color_override(&"font_color", Color.WHITE)
+		button.add_theme_color_override(&"font_hover_color", Color.WHITE)
+		button.add_theme_color_override(&"font_pressed_color", Color(1, 0.9, 0.8))
+		button.add_theme_color_override(&"font_outline_color", Color(0.13, 0.02, 0.06))
+		button.add_theme_constant_override(&"outline_size", 4)
+	# 牌堆按钮摆位（sts2：抽牌堆左下、弃牌堆右下），先定尺寸再搭图标/徽章
+	_pile_draw.size = Vector2(120.0, 126.0)
+	_pile_draw.position = Vector2(40.0, 838.0)
+	_pile_discard.size = Vector2(120.0, 126.0)
+	_pile_discard.position = Vector2(1760.0, 838.0)
+	_style_pile_button(_pile_draw, "res://assets/ui/combat/draw_pile.png")
+	_style_pile_button(_pile_discard, "res://assets/ui/combat/discard_pile.png")
+	_enemy_bar.add_theme_stylebox_override(&"bg", _flat_style(Color(0.08, 0.06, 0.09, 0.9)))
+	_enemy_bar.add_theme_stylebox_override(&"fill", _flat_style(Color(0.85, 0.25, 0.3)))
+	_gauge_bar.add_theme_stylebox_override(&"bg", _flat_style(Color(0.08, 0.06, 0.12, 0.9)))
+	_gauge_bar.add_theme_stylebox_override(&"fill", _flat_style(Color(0.35, 0.55, 0.9)))
+
+
+func _button_style(path: String) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	if ResourceLoader.exists(path):
+		style.texture = load(path)
+	style.texture_margin_left = 24.0
+	style.texture_margin_top = 24.0
+	style.texture_margin_right = 24.0
+	style.texture_margin_bottom = 24.0
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	return style
+
+
+func _flat_style(color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	return style
+
+
+## 牌堆按钮（sts2 的 NCombatCardPile）：图标精灵 + 底部数字徽章，悬停放大、数量变化时弹一下
+func _style_pile_button(button: Button, icon_path: String) -> void:
+	button.text = ""
+	button.add_theme_stylebox_override(&"normal", StyleBoxEmpty.new())
+	button.add_theme_stylebox_override(&"hover", StyleBoxEmpty.new())
+	button.add_theme_stylebox_override(&"pressed", StyleBoxEmpty.new())
+	button.add_theme_stylebox_override(&"focus", StyleBoxEmpty.new())
+	var icon := TextureRect.new()
+	icon.name = "Icon"
+	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists(icon_path):
+		icon.texture = load(icon_path)
+	icon.pivot_offset = button.size * 0.5
+	button.add_child(icon)
+	var badge := TextureRect.new()
+	badge.name = "CountBadge"
+	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	badge.stretch_mode = TextureRect.STRETCH_SCALE
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.size = Vector2(56.0, 46.0)
+	badge.position = Vector2(button.size.x - 62.0, button.size.y - 52.0)
+	if ResourceLoader.exists("res://assets/ui/combat/pile_button_count.png"):
+		badge.texture = load("res://assets/ui/combat/pile_button_count.png")
+	button.add_child(badge)
+	var count := Label.new()
+	count.name = "Count"
+	count.set_anchors_preset(Control.PRESET_FULL_RECT)
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	count.add_theme_font_size_override(&"font_size", 26)
+	count.add_theme_color_override(&"font_color", Color.WHITE)
+	count.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.9))
+	count.add_theme_constant_override(&"outline_size", 5)
+	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.add_child(count)
+	# 悬停/按下时的缩放反馈（sts2 的 _hoverScale = 1.25）
+	button.mouse_entered.connect(func() -> void: _bump_control(icon, Vector2(1.18, 1.18), 0.12))
+	button.mouse_exited.connect(func() -> void: _bump_control(icon, Vector2.ONE, 0.25))
+
+
+## 数量变了弹一下（sts2 的 AddCard/RemoveCard bump）
+func _bump_pile_button(button: Button) -> void:
+	var icon := button.get_node_or_null(^"Icon") as Control
+	if icon != null:
+		_bump_control(icon, Vector2.ONE, 0.4, 1.25)
+
+
+## 刷新牌堆按钮上的数字（变化时弹一下）
+func _set_pile_count(button: Button, value: int) -> void:
+	var count := button.get_node_or_null(^"CountBadge/Count") as Label
+	if count != null:
+		count.text = str(value)
+	var prev := int(_pile_counts.get(button.name, -1))
+	if prev != value:
+		if prev >= 0:
+			_bump_pile_button(button)
+		_pile_counts[button.name] = value
+
+
+func _bump_control(control: Control, to: Vector2, duration: float, from_scale := -1.0) -> void:
+	if control == null:
+		return
+	control.pivot_offset = control.size * 0.5
+	if from_scale > 0.0:
+		control.scale = Vector2(from_scale, from_scale)
+	var tween := create_tween()
+	tween.tween_property(control, ^"scale", to, duration).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 
 
 ## game.gd 的入口（兼容旧 combat.tscn 的调用签名）
@@ -287,21 +418,45 @@ func _rebuild_hand() -> void:
 
 
 func _on_card_pressed(index: int) -> void:
-	await _animate_card_play(index)
+	# 顺序按 sts2：先把牌抬到屏幕正下方居中（NCardPlay.CenterCard）→ 结算效果 → 牌消失
+	var view := await _lift_card_to_center(index)
 	play_card(index)
+	await _send_card_away(view)
 
 
-## 出牌手感：牌抬起来放大再淡出（Container 会接管 position，所以只动 scale/alpha）
-func _animate_card_play(index: int) -> void:
+## sts2 的 CenterCard：牌抬到屏幕中轴、贴底部，缩到 0.75 左右（容器会接管 position，先摘出来）
+func _lift_card_to_center(index: int) -> Control:
 	if index < 0 or index >= _hand_box.get_child_count():
-		return
+		return null
 	var view: Control = _hand_box.get_child(index)
 	if view == null:
-		return
+		return null
+	var rect := view.get_global_rect()
+	_hand_box.remove_child(view)
+	view.size = rect.size
+	view.pivot_offset = view.size * 0.5
+	view.global_position = rect.position
+	view.z_index = 100
+	add_child(view)
+	var screen := get_viewport().get_visible_rect().size
+	var target := Vector2(screen.x * 0.5 - view.size.x * 0.5, screen.y - view.size.y * 0.92)
 	var tween := create_tween().set_parallel(true)
-	tween.tween_property(view, ^"scale", Vector2(1.28, 1.28), 0.12).set_trans(Tween.TRANS_SINE)
-	tween.tween_property(view, ^"modulate:a", 0.0, 0.16).set_delay(0.04)
+	tween.tween_property(view, ^"global_position", target, 0.20).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(view, ^"scale", Vector2(0.78, 0.78), 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	await tween.finished
+	return view
+
+
+## 结算完把牌收走（缩一下 + 淡出）
+func _send_card_away(view: Control) -> void:
+	if view == null or not is_instance_valid(view):
+		return
+	await get_tree().create_timer(0.14).timeout
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(view, ^"scale", Vector2(0.62, 0.62), 0.18).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(view, ^"modulate:a", 0.0, 0.18)
+	await tween.finished
+	view.queue_free()
 
 
 func play_card(index: int) -> bool:
@@ -537,8 +692,10 @@ func _update_ui() -> void:
 	_form_button.disabled = _over or (not GS.in_form() and not GS.can_enter_form())
 	_mercy_label.text = "好感度 %d" % GS.mercy
 	_deck_label.text = "卡组 %d" % GS.deck.size()
-	_pile_draw.text = "抽牌堆 %d" % draw_pile.size()
-	_pile_discard.text = "弃牌堆 %d" % discard_pile.size()
+	_pile_draw.text = ""
+	_pile_discard.text = ""
+	_set_pile_count(_pile_draw, draw_pile.size())
+	_set_pile_count(_pile_discard, discard_pile.size())
 	_enemy_name.text = enemy_name
 	_enemy_bar.max_value = maxi(enemy_max_hp, 1)
 	_enemy_bar.value = enemy_hp
@@ -573,15 +730,14 @@ func _update_intent() -> void:
 
 
 func _rebuild_party() -> void:
-	if _party_box.get_child_count() > 0:
-		var slot: Control = _party_box.get_child(0)
-		var hp: ProgressBar = slot.get_node_or_null(^"Hp")
-		if hp != null:
-			hp.value = player_hp
-			hp.show_percentage = false
-		var info: Label = slot.get_node_or_null(^"Info")
-		if info != null:
-			info.text = _player_status_text()
+	# 第一次搭完版式后，HP 条藏在 row→col→Hp 两层下面，
+	# 直接 get_node_or_null("Hp") 会拿到 null → 我方 HP 永远停在初始值，
+	# 看起来就是“被打也不掉血”。缓存引用一次，之后直接改值。
+	if _party_hp_bar != null and is_instance_valid(_party_hp_bar):
+		_party_hp_bar.max_value = maxi(player_max_hp, 1)
+		_party_hp_bar.value = player_hp
+		if _party_info_label != null and is_instance_valid(_party_info_label):
+			_party_info_label.text = _player_status_text()
 		return
 	# 第一次搭版式：小头像 + HP（OMORI 式）
 	var row := HBoxContainer.new()
@@ -620,6 +776,8 @@ func _rebuild_party() -> void:
 	col.add_child(info_label)
 	row.add_child(col)
 	_party_box.add_child(row)
+	_party_hp_bar = hp_bar
+	_party_info_label = info_label
 
 
 func _player_status_text() -> String:

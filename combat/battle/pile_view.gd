@@ -2,16 +2,22 @@ class_name BattlePileView
 extends Control
 ## 抽牌堆 / 弃牌堆查看器（点牌堆按钮弹出）。
 ##
-## 结构全用代码搭，省得再维护一个场景。点击背景或右上角「关闭」收起。
+## 参照 sts2 的 NCardPileScreen：不列文字，而是把**真正的卡面**铺成网格给你看。
+## 卡面复用战斗里的 BattleCardView（所以稀有度卡框/标题颜色在这里也一致）。
+## 点背景、右上角「关闭」都能收起。
 
 signal closed
 
-const ROW_HEIGHT := 34.0
+const CARD_SCALE := 0.85
+const COLUMNS := 8
+const PANEL_RECT := Rect2(250.0, 110.0, 1420.0, 860.0)
 
 var _title: Label
-var _rows: VBoxContainer
+## 卡片网格（自检 F13 会数它的子节点数）
+var _rows: GridContainer
 var _panel: Panel
 var _scroll: ScrollContainer
+var _close: Button
 
 
 func _ready() -> void:
@@ -21,58 +27,131 @@ func _ready() -> void:
 
 	var backdrop := ColorRect.new()
 	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color(0, 0, 0, 0.55)
+	backdrop.color = Color(0, 0, 0, 0.62)
 	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	backdrop.gui_input.connect(_on_backdrop_input)
 	add_child(backdrop)
 
 	_panel = Panel.new()
-	_panel.position = Vector2(560.0, 120.0)
-	_panel.size = Vector2(800.0, 840.0)
+	_panel.position = PANEL_RECT.position
+	_panel.size = PANEL_RECT.size
+	var style := StyleBoxTexture.new()
+	if ResourceLoader.exists("res://assets/ui/panels/panel_black.png"):
+		style.texture = load("res://assets/ui/panels/panel_black.png")
+	style.texture_margin_left = 40.0
+	style.texture_margin_top = 40.0
+	style.texture_margin_right = 40.0
+	style.texture_margin_bottom = 40.0
+	style.content_margin_left = 28.0
+	style.content_margin_top = 20.0
+	style.content_margin_right = 28.0
+	style.content_margin_bottom = 20.0
+	_panel.add_theme_stylebox_override(&"panel", style)
 	add_child(_panel)
 
 	_title = Label.new()
 	_title.position = Vector2(28.0, 18.0)
-	_title.size = Vector2(600.0, 44.0)
+	_title.size = Vector2(900.0, 46.0)
 	_title.add_theme_font_size_override(&"font_size", 34)
 	_title.add_theme_color_override(&"font_color", Color(1, 0.95, 0.85))
+	_title.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.9))
+	_title.add_theme_constant_override(&"outline_size", 6)
 	_panel.add_child(_title)
 
-	var close := Button.new()
-	close.text = "关闭"
-	close.position = Vector2(660.0, 16.0)
-	close.size = Vector2(120.0, 48.0)
-	close.pressed.connect(func() -> void: close_view())
-	_panel.add_child(close)
+	_close = Button.new()
+	_close.text = "关闭"
+	_close.position = Vector2(1250.0, 16.0)
+	_close.size = Vector2(140.0, 52.0)
+	_close.add_theme_font_size_override(&"font_size", 22)
+	_style_button(_close)
+	_close.pressed.connect(func() -> void: close_view())
+	_panel.add_child(_close)
 
 	_scroll = ScrollContainer.new()
-	_scroll.position = Vector2(24.0, 76.0)
-	_scroll.size = Vector2(752.0, 744.0)
+	_scroll.position = Vector2(24.0, 80.0)
+	_scroll.size = Vector2(1372.0, 756.0)
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_panel.add_child(_scroll)
 
-	_rows = VBoxContainer.new()
-	_rows.custom_minimum_size = Vector2(720.0, 0.0)
-	_rows.add_theme_constant_override(&"separation", 6)
+	_rows = GridContainer.new()
+	_rows.columns = COLUMNS
+	_rows.add_theme_constant_override(&"h_separation", 10)
+	_rows.add_theme_constant_override(&"v_separation", 10)
 	_scroll.add_child(_rows)
 
 
+func _style_button(button: Button) -> void:
+	var path := "res://assets/ui/buttons/button_black.png"
+	if not ResourceLoader.exists(path):
+		return
+	var style := StyleBoxTexture.new()
+	style.texture = load(path)
+	style.texture_margin_left = 24.0
+	style.texture_margin_top = 24.0
+	style.texture_margin_right = 24.0
+	style.texture_margin_bottom = 24.0
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	button.add_theme_stylebox_override(&"normal", style)
+	button.add_theme_stylebox_override(&"hover", style)
+	button.add_theme_stylebox_override(&"pressed", style)
+	button.add_theme_stylebox_override(&"focus", style)
+	button.add_theme_color_override(&"font_color", Color.WHITE)
+
+
+## 打开查看器：card_ids 里的每一张都渲染成真卡面
 func open_view(title: String, card_ids: Array) -> void:
-	_title.text = "%s（%d 张）" % [title, card_ids.size()]
 	for child in _rows.get_children():
 		child.queue_free()
+	_title.text = "%s（%d 张）" % [title, card_ids.size()]
 	if card_ids.is_empty():
-		_add_row("—— 空 ——", 0, "")
+		var empty := Label.new()
+		empty.text = "—— 空的 ——"
+		empty.custom_minimum_size = Vector2(400.0, 60.0)
+		empty.add_theme_font_size_override(&"font_size", 28)
+		empty.add_theme_color_override(&"font_color", Color(0.8, 0.8, 0.85))
+		_rows.add_child(empty)
 	else:
-		var sorted_ids := card_ids.duplicate()
-		sorted_ids.sort()
-		for id: Variant in sorted_ids:
-			var card: CardData = CardDB.get_card(str(id))
-			if card == null:
-				_add_row(str(id), 0, "（未知卡）")
-			else:
-				_add_row(card.name, card.cost, card.description)
+		for id: Variant in _sorted_ids(card_ids):
+			_add_card(str(id))
+	_scroll.scroll_vertical = 0
 	visible = true
+
+
+## 稀有度高的排前面（金 > 紫 > 蓝 > 灰），同稀有度按费用、再按名字
+func _sorted_ids(card_ids: Array) -> Array:
+	var ids := card_ids.duplicate()
+	ids.sort_custom(func(a: Variant, b: Variant) -> bool:
+		var ca: CardData = CardDB.get_card(str(a))
+		var cb: CardData = CardDB.get_card(str(b))
+		var ra := ca.rarity if ca != null else CardData.Rarity.BASIC
+		var rb := cb.rarity if cb != null else CardData.Rarity.BASIC
+		if ra != rb:
+			return ra > rb
+		var costa := ca.cost if ca != null else 0
+		var costb := cb.cost if cb != null else 0
+		if costa != costb:
+			return costa < costb
+		return str(a) < str(b))
+	return ids
+
+
+func _add_card(card_id: String) -> void:
+	var data: CardData = CardDB.get_card(card_id)
+	# 单元格：卡面按 CARD_SCALE 缩放后占的尺寸（scale 不影响布局，所以要自己撑格子）
+	var cell := Control.new()
+	cell.custom_minimum_size = BattleCardView.CARD_SIZE * CARD_SCALE
+	var view := BattleCardView.new()
+	cell.add_child(view)
+	# 先入树再 setup：BattleCardView 的子节点是在 _ready 里建的，
+	# 没进树就 setup 会往 null 上写 text（实测报 “base object of type 'Nil'”）。
+	_rows.add_child(cell)
+	view.scale = Vector2(CARD_SCALE, CARD_SCALE)
+	view.pivot_offset = Vector2.ZERO
+	view.setup(data)
+	view.set_playable(true)
 
 
 func close_view() -> void:
@@ -80,35 +159,6 @@ func close_view() -> void:
 	closed.emit()
 
 
-func _add_row(card_name: String, cost: int, description: String) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override(&"separation", 14)
-
-	var cost_label := Label.new()
-	cost_label.text = "[%d]" % cost if cost > 0 else "[—]"
-	cost_label.custom_minimum_size = Vector2(56.0, 0.0)
-	cost_label.add_theme_font_size_override(&"font_size", 22)
-	cost_label.add_theme_color_override(&"font_color", Color(1, 0.9, 0.55))
-	row.add_child(cost_label)
-
-	var name_label := Label.new()
-	name_label.text = card_name
-	name_label.custom_minimum_size = Vector2(200.0, 0.0)
-	name_label.add_theme_font_size_override(&"font_size", 22)
-	name_label.add_theme_color_override(&"font_color", Color.WHITE)
-	row.add_child(name_label)
-
-	var desc_label := Label.new()
-	desc_label.text = description
-	desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc_label.add_theme_font_size_override(&"font_size", 18)
-	desc_label.add_theme_color_override(&"font_color", Color(0.82, 0.84, 0.9))
-	row.add_child(desc_label)
-
-	row.custom_minimum_size = Vector2(0.0, ROW_HEIGHT)
-	_rows.add_child(row)
-
-
 func _on_backdrop_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		close_view()

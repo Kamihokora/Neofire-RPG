@@ -112,7 +112,6 @@ offset_top = 116.0
 offset_right = 524.0
 offset_bottom = 142.0
 mouse_filter = 2
-# 素材是朝上的三角：转 180° 变成朝下（"还有下一句"的指示）
 flip_h = true
 flip_v = true
 texture = ExtResource("4_arrow")
