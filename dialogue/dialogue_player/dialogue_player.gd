@@ -3,7 +3,7 @@ extends Node
 signal dialogue_started
 signal dialogue_finished
 
-@export_file("*.json") var dialogue_file: String
+@export_file("*.json", "*.txt") var dialogue_file: String
 var dialogue_keys := []
 var dialogue_name: String = ""
 var current := 0

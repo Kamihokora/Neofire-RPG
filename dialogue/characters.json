@@ -23,8 +23,10 @@
     },
     "xinhuo": {
       "name": "焰铃",
+      "aliases": ["新火娘", "焰铃"],
       "name_color": "#ff4d4d",
-      "portrait": "res://assets/portraits/xinhuo_normal.png"
+      "portrait": "res://assets/portraits/xinhuo_normal.png",
+      "avatar": "res://assets/avatars/你好_05.png"
     },
     "enemy": {
       "name": "敌人",

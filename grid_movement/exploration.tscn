@@ -667,7 +667,7 @@ script = ExtResource("9")
 type = 2
 
 [node name="DialoguePlayer" parent="Grid/Object" unique_id=1157089401 instance=ExtResource("8")]
-dialogue_file = "res://dialogue/dialogue_data/object.json"
+dialogue_file = "res://dialogue/dialogue_data/object.txt"
 
 [node name="Decoration upper level" type="Node2D" parent="." unique_id=125227117]
 
