@@ -2,6 +2,8 @@
   "id": "enemy_basic",
   "name": "敌人",
   "max_hp": 64,
+  "rewards": {"experience":10,"inspirations":{"test1":1,"test2":1}},
+  "writer_inspiration": "test1",
   "art": "res://assets/portraits/enemy.png",
   "intents": [
     { "kind": "attack", "value": 9 },

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/proposal_table.gd" id="1"]
+
+[node name="ProposalTable" type="Node2D" groups=["interactable", "proposal_table"]]
+script = ExtResource("1")

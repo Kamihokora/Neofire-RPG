@@ -11,7 +11,7 @@ extends CanvasLayer
 ## 提前退出按 已用/最大 比例退还。卡组与形态值存在 GameState（autoload）里。
 
 signal battle_finished(player_won: bool)
-## 四个应援入口，索引 0～3；目前只有 0 接入既有文手形态。
+## 应援索引对应站位，当前成员由开战时的阵容快照决定。
 signal support_triggered(slot_index: int)
 signal pile_animation_finished
 signal cards_moved(kind: String, count: int)
@@ -33,6 +33,7 @@ const UIShatter := preload("res://combat/battle/ui_shatter.gd")
 const WriterDialogue := preload("res://combat/battle/writer_dialogue.gd")
 const UITransition := preload("res://combat/battle/ui_transition.gd")
 const DoboButtonStyle := preload("res://assets/ui/dobo_button_style.gd")
+const CreatorRules := preload("res://gameplay/creator_rules.gd")
 
 ## 独立预览用（挂进 game.tscn 时由 game.gd 调 initialize）
 @export var auto_start: bool = false
@@ -41,6 +42,12 @@ const DoboButtonStyle := preload("res://assets/ui/dobo_button_style.gd")
 
 ## 全局 run 状态（autoload，兜底自举见 game_state.gd）
 var GS: RunState = null
+var _battle_formation: Array[String] = []
+var _battle_loadouts: Dictionary = {}
+var _support_used: Dictionary = {}
+var _enemy_rewards: Dictionary = {}
+var _writer_inspiration := ""
+var last_rewards: Dictionary = {}
 
 #region 战斗状态
 var player_max_hp := 72
@@ -215,13 +222,61 @@ func _on_gauge_hover(on: bool) -> void:
 
 
 func _on_support_triggered(slot_index: int) -> void:
-	if _busy or _over or _drag_view != null or _card_motion_active or _pile_animation_count > 0 or _resolution_depth > 0:
+	var reason := support_block_reason(slot_index)
+	if not reason.is_empty():
+		_toast_message(reason)
 		return
-	support_triggered.emit(slot_index)
 	if slot_index == 0:
 		_on_form_button_pressed()
-	else:
-		_toast_message("test%d" % (slot_index + 1))
+		return
+	var member := _battle_formation[slot_index]
+	var cost: int = CreatorRules.COSTS[slot_index]
+	var id: String = _battle_loadouts.get(member, {}).get(str(cost), "")
+	var skill: Dictionary = CreatorRules.skills()[id]
+	# 在任何异步飞牌之前原子扣费并登记，快速连点不会重复释放。
+	_busy = true
+	_support_used[member] = true
+	GS.set_form_value(GS.form_value - cost)
+	_update_ui()
+	support_triggered.emit(slot_index)
+	_toast_message("%s：%s（-%d）" % [CreatorRules.NAMES[member], skill["name"], cost])
+	for effect: Dictionary in skill.get("effects", []):
+		if str(effect.get("kind")) == "strength":
+			player_strength += int(effect.get("value", 0))
+		else:
+			var effect_card := CardData.new()
+			effect_card.effects.assign([effect])
+			await _apply_effects(effect_card)
+		if _over:
+			break
+	_busy = _over
+	_update_ui()
+
+
+func support_block_reason(slot_index: int, check_busy: bool = true) -> String:
+	if slot_index < 0 or slot_index >= _battle_formation.size():
+		return "站位无效"
+	if _over or turn <= 0:
+		return "当前不可应援"
+	if check_busy and (_busy or _drag_view != null or _card_motion_active or _pile_animation_count > 0 or _resolution_depth > 0 or _pile_view.visible or _hud.is_menu_open()):
+		return "请等待当前操作完成"
+	if GS.in_form():
+		return "形态演出中不可应援"
+	var member := _battle_formation[slot_index]
+	if _support_used.has(member):
+		return "本回合已应援，下回合恢复"
+	var cost: int = CreatorRules.COSTS[slot_index]
+	if slot_index == 0:
+		if member != "write":
+			return "第一章暂未实现该角色的队长形态"
+		if not bool(GS.global_flags.get("unlock_leader_ult", false)):
+			return "请先通过提案解锁队长形态"
+	var id: String = _battle_loadouts.get(member, {}).get(str(cost), "")
+	if not CreatorRules.matches_slot(id, member, cost) or id not in GS.known_creator_skills:
+		return "此档位尚未装配可用技能"
+	if GS.form_value < cost:
+		return "形态值不足（需要%d，当前%d）" % [cost, GS.form_value]
+	return ""
 
 
 func _on_menu_requested(menu_id: String) -> void:
@@ -230,7 +285,11 @@ func _on_menu_requested(menu_id: String) -> void:
 	if menu_id == "deck":
 		_pile_view.open_view("卡组", GS.deck)
 	else:
-		_hud.show_menu(menu_id)
+		var phone := get_tree().get_first_node_in_group(&"phone_menu")
+		if phone != null:
+			phone.open_phone("party" if menu_id == "skills" else "inventory")
+		else:
+			_hud.show_menu(menu_id)
 
 
 func _on_form_value_changed(_value: int) -> void:
@@ -425,10 +484,18 @@ func start_battle() -> void:
 	_over = false
 	_busy = true
 	turn = 0
+	_battle_formation.assign(GS.formation)
+	_battle_loadouts = GS.skill_loadouts.duplicate(true)
+	_support_used.clear()
+	last_rewards.clear()
 	player_hp = player_max_hp
 	player_block = 0
 	player_strength = 0
 	player_vulnerable = 0
+	enemy_block = 0
+	enemy_strength = 0
+	enemy_weak = 0
+	enemy_vulnerable = 0
 	energy = 0
 	hand.clear()
 	discard_pile.clear()
@@ -460,6 +527,8 @@ func _load_enemy(path: String) -> void:
 	if not (data is Dictionary):
 		return
 	var d: Dictionary = data
+	_enemy_rewards = d.get("rewards", {}).duplicate(true)
+	_writer_inspiration = str(d.get("writer_inspiration", ""))
 	enemy_name = str(d.get("name", "敌人"))
 	enemy_max_hp = int(d.get("max_hp", 64))
 	enemy_hp = enemy_max_hp
@@ -478,6 +547,7 @@ func _load_enemy(path: String) -> void:
 func _start_player_turn() -> void:
 	_busy = true
 	turn += 1
+	_support_used.clear()
 	# 形态按回合消耗（进入的那一回合不算）
 	if GS.in_form() and not _form_entered_this_turn:
 		if GS.tick_form_turn():
@@ -1291,16 +1361,18 @@ func _on_form_button_pressed() -> void:
 	if not GS.can_enter_form():
 		_toast_message("形态值不足（%d/%d）" % [GS.form_value, GS.FORM_COST])
 		return
-	_try_enter_form()
-	await _play_form_cutin()
+	if _try_enter_form():
+		await _play_form_cutin()
 
 
 func _try_enter_form() -> bool:
-	if not GS.can_enter_form():
+	if not support_block_reason(0, false).is_empty() or not GS.can_enter_form():
 		return false
 	if not GS.enter_form(GS.FORM_WRITER):
 		return false
 	_form_entered_this_turn = true
+	_support_used[_battle_formation[0]] = true
+	support_triggered.emit(0)
 	player_block += 5
 	_toast_message("进入文手形态！")
 	_update_ui()
@@ -1323,6 +1395,8 @@ func _play_form_cutin() -> void:
 		0:
 			GS.mercy += 10
 			feedback = "好感度 +10"
+			if not _writer_inspiration.is_empty() and GS.journey.add_inspiration(_writer_inspiration):
+				feedback += " · 获得灵感"
 		1:
 			enemy_vulnerable += 1
 			feedback = "敌人获得易伤"
@@ -1483,7 +1557,15 @@ func _finish(player_won: bool) -> void:
 		return
 	_over = true
 	_busy = true
+	if player_won:
+		var experience_gained := maxi(0, int(_enemy_rewards.get("experience", 0)))
+		var levels: int = GS.journey.award_experience(experience_gained, GS)
+		for id: String in _enemy_rewards.get("inspirations", {}):
+			GS.journey.add_inspiration(id, int(_enemy_rewards["inspirations"][id]))
+		last_rewards = {"experience":experience_gained, "levels":levels}
 	_toast_message("战斗胜利！" if player_won else "你倒下了……")
+	if player_won and int(last_rewards.get("experience", 0)) > 0:
+		_toast_message("战斗胜利！经验 +%d%s" % [last_rewards["experience"], " · 队伍 Lv.%d" % GS.journey.level if int(last_rewards["levels"]) > 0 else ""])
 	_update_ui()
 	await get_tree().create_timer(1.4).timeout
 	battle_finished.emit(player_won)
@@ -1506,7 +1588,7 @@ func _update_ui() -> void:
 		_gauge_value.text = "%d/%d" % [GS.form_value, GS.FORM_COST]
 	_form_button.text = "退出文手形态" if GS.in_form() else "进入文手形态"
 	var locked := _over or _busy or _card_motion_active or _pile_animation_count > 0 or _resolution_depth > 0
-	_form_button.disabled = locked or (not GS.in_form() and not GS.can_enter_form())
+	_form_button.disabled = locked or (not GS.in_form() and not support_block_reason(0, false).is_empty())
 	_end_turn_button.disabled = locked
 	_mercy_label.visible = false
 	_mercy_label.text = "好感度 %d" % GS.mercy
@@ -1541,6 +1623,11 @@ func _update_ui() -> void:
 	_update_health_color(_party_hp_bar, player_block > 0)
 	_update_health_color(_enemy_bar, enemy_block > 0, GS.in_form())
 	_hud.update_resources(energy, max_energy, locked)
+	for slot_index in _battle_formation.size():
+		var member := _battle_formation[slot_index]
+		var cost: int = CreatorRules.COSTS[slot_index]
+		var id: String = _battle_loadouts.get(member, {}).get(str(cost), "")
+		_hud.update_support(slot_index, member, CreatorRules.skills().get(id, {}), cost, support_block_reason(slot_index), _support_used.has(member))
 	for node: Node in _hand_box.get_children():
 		var view := node as BattleCardView
 		view.set_playable(_can_play(view.card))

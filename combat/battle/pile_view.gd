@@ -331,7 +331,7 @@ func _open_inspection(index: int, source: BattleCardView = null) -> void:
 		_choice_confirm.disabled = not allowed or (_selection_count > 1 and _selected.size() >= _selection_count and not _selected.has(index))
 		_choice_confirm.text = "取消选中" if _selected.has(index) else "确定"
 		_inspect_count.text = ("确定是这张吗？" if _selection_count == 1 else "将这张加入选择？") if allowed else "此牌当前不可打出"
-	var center := get_viewport_rect().size * 0.5
+	var center := _inspection_area_size() * 0.5
 	var target := center - BattleCardView.CARD_SIZE * 0.5
 	if source != null:
 		_inspect_card.global_position = source.global_position
@@ -349,6 +349,11 @@ func _open_inspection(index: int, source: BattleCardView = null) -> void:
 
 func _change_inspection(direction: int) -> void:
 	_open_inspection(_inspect_index + direction)
+
+
+## 嵌入手机时检查层放到独立逻辑舞台，不沿用滚动区的坐标尺寸。
+func _inspection_area_size() -> Vector2:
+	return get_viewport_rect().size
 
 
 func _close_inspection() -> void:

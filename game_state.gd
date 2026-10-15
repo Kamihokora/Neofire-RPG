@@ -20,6 +20,11 @@ signal form_value_changed(value: int)
 signal form_entered(form_id: String)
 signal form_exited(form_id: String, refunded: int)
 signal deck_changed()
+signal formation_changed
+signal loadout_changed
+
+const CreatorRules := preload("res://gameplay/creator_rules.gd")
+const JourneyProgress := preload("res://gameplay/journey_progress.gd")
 
 ## 进入形态的消耗 / 形态值上限
 const FORM_COST := 10
@@ -40,9 +45,18 @@ var form_turns_left: int = 0
 var form_turns_used: int = 0
 ## 好感度（文手形态的“交涉”用；交涉场景做出来之前先留接口）
 var mercy: int = 0
-var min_deck_size: int = 20
+var min_deck_size: int = 12 # reset_run从成长配置读取；起始牌组目前12张，硬下限10。
 var rarity_budget: int = 5
 var deck: Array[String] = []
+## 跨场景的提案解锁、技能装配与共享成长；战斗内资源仍归Battle管理。
+var global_flags: Dictionary = {"can_sprint": false, "unlock_card_recycle": false, "unlock_leader_ult": false, "max_relic_slots": 1}
+var inventory: Dictionary = {}
+var skill_loadouts: Dictionary = {}
+var known_creator_skills: Array[String] = []
+var formation: Array[String] = ["write", "draw", "rhythm", "manga"]
+var relics: Array[String] = []
+var play_seconds := 0.0
+var journey := JourneyProgress.new()
 
 static var _instance: RunState = null
 
@@ -80,10 +94,159 @@ func reset_run() -> void:
 	form_turns_left = 0
 	form_turns_used = 0
 	mercy = 0
+	global_flags = {"can_sprint": false, "unlock_card_recycle": false, "unlock_leader_ult": false, "max_relic_slots": 1}
+	inventory.clear()
+	skill_loadouts.clear()
+	skill_loadouts = CreatorRules.default_loadouts()
+	known_creator_skills.assign(CreatorRules.starting_skills())
+	formation.assign(["write", "draw", "rhythm", "manga"])
+	relics.clear()
+	play_seconds = 0.0
 	deck = load_starting_deck()
+	min_deck_size = int(JourneyProgress.growth().get("starting_minimum_deck", 12))
+	rarity_budget = 5
+	journey.reset()
 	support_changed.emit(support_value)
 	form_value_changed.emit(form_value)
 	deck_changed.emit()
+	formation_changed.emit()
+	loadout_changed.emit()
+
+
+func _process(delta: float) -> void:
+	play_seconds += delta
+
+
+func to_save_data() -> Dictionary:
+	return {"support_value": support_value, "form_value": form_value, "mercy": mercy,
+		"min_deck_size": min_deck_size, "rarity_budget": rarity_budget, "deck": deck.duplicate(),
+		"global_flags": global_flags.duplicate(true), "inventory": inventory.duplicate(true),
+		"skill_loadouts": skill_loadouts.duplicate(true), "formation": formation.duplicate(),
+		"relics": relics.duplicate(), "play_seconds": play_seconds,
+		"known_creator_skills": known_creator_skills.duplicate(), "journey":journey.to_save_data()}
+
+
+static func valid_save_data(data: Dictionary) -> bool:
+	for key: String in ["support_value", "form_value", "mercy", "min_deck_size", "rarity_budget", "play_seconds"]:
+		var value: Variant = data.get(key)
+		if not (value is int or value is float) or not is_finite(float(value)) or float(value) < 0 or float(value) > 1000000000:
+			return false
+		if key != "play_seconds" and float(value) != floor(float(value)):
+			return false
+	if float(data["form_value"]) > FORM_COST:
+		return false
+	for key: String in ["deck", "formation", "relics"]:
+		if not data.get(key) is Array or data[key].size() > 1000:
+			return false
+		for value: Variant in data[key]:
+			if not value is String:
+				return false
+	for card_id: String in data["deck"]:
+		if not CardDB.all().has(card_id):
+			return false
+	if data["formation"].size() != 4:
+		return false
+	var seen: Dictionary = {}
+	for member: String in data["formation"]:
+		if member not in ["write", "draw", "rhythm", "manga"] or seen.has(member):
+			return false
+		seen[member] = true
+	for key: String in ["global_flags", "inventory", "skill_loadouts"]:
+		if not data.get(key) is Dictionary:
+			return false
+	for key: String in ["can_sprint", "unlock_card_recycle", "unlock_leader_ult"]:
+		if not data["global_flags"].get(key) is bool:
+			return false
+	var capacity: Variant = data["global_flags"].get("max_relic_slots")
+	if not (capacity is int or capacity is float) or float(capacity) != floor(float(capacity)) or float(capacity) < 1 or float(capacity) > 64:
+		return false
+	for id: Variant in data["inventory"]:
+		var count: Variant = data["inventory"][id]
+		if not id is String or not (count is int or count is float) or not is_finite(float(count)) or float(count) != floor(float(count)) or float(count) < 0 or float(count) > 1000000000:
+			return false
+	if data.has("known_creator_skills"):
+		if not data["known_creator_skills"] is Array:
+			return false
+		for id: Variant in data["known_creator_skills"]:
+			if not id is String or not CreatorRules.skills().has(id):
+				return false
+		for member: Variant in data["skill_loadouts"]:
+			if member not in CreatorRules.MEMBERS or not data["skill_loadouts"][member] is Dictionary:
+				return false
+			for tier: Variant in data["skill_loadouts"][member]:
+				var id: Variant = data["skill_loadouts"][member][tier]
+				if not tier is String or not tier.is_valid_int() or int(tier) not in CreatorRules.COSTS or not id is String:
+					return false
+				if not id.is_empty() and (not CreatorRules.matches_slot(id, member, int(tier)) or id not in data["known_creator_skills"]):
+					return false
+	if data.has("journey") and not JourneyProgress.valid_save_data(data["journey"]):
+		return false
+	return true
+
+
+func apply_save_data(data: Dictionary) -> bool:
+	if not valid_save_data(data):
+		return false
+	support_value = int(data["support_value"])
+	form_value = int(data["form_value"])
+	mercy = int(data["mercy"])
+	min_deck_size = int(data["min_deck_size"])
+	rarity_budget = int(data["rarity_budget"])
+	play_seconds = float(data["play_seconds"])
+	deck.assign(data["deck"])
+	formation.assign(data["formation"])
+	relics.assign(data["relics"])
+	global_flags = data["global_flags"].duplicate(true)
+	inventory = data["inventory"].duplicate(true)
+	known_creator_skills.assign(data.get("known_creator_skills", CreatorRules.starting_skills()))
+	skill_loadouts = data["skill_loadouts"].duplicate(true) if data.has("known_creator_skills") else CreatorRules.default_loadouts()
+	form_id = ""
+	form_turns_left = 0
+	form_turns_used = 0
+	if data.has("journey"):
+		journey.apply_save_data(data["journey"])
+	else:
+		journey.reset()
+	support_changed.emit(support_value)
+	form_value_changed.emit(form_value)
+	deck_changed.emit()
+	formation_changed.emit()
+	loadout_changed.emit()
+	return true
+
+
+func set_formation(members: Array) -> bool:
+	if not CreatorRules.valid_formation(members):
+		return false
+	formation.assign(members)
+	formation_changed.emit()
+	return true
+
+
+func swap_formation(a: int, b: int) -> bool:
+	if a < 0 or b < 0 or a >= 4 or b >= 4:
+		return false
+	var members := formation.duplicate()
+	var previous: String = members[a]
+	members[a] = members[b]
+	members[b] = previous
+	return set_formation(members)
+
+
+func equipped_creator_skill(member: String, tier: int) -> String:
+	return str(skill_loadouts.get(member, {}).get(str(tier), ""))
+
+
+func equip_creator_skill(member: String, tier: int, id: String) -> bool:
+	if member not in CreatorRules.MEMBERS or tier not in CreatorRules.COSTS:
+		return false
+	if not id.is_empty() and (not CreatorRules.matches_slot(id, member, tier) or id not in known_creator_skills):
+		return false
+	if not skill_loadouts.has(member):
+		skill_loadouts[member] = {}
+	skill_loadouts[member][str(tier)] = id
+	loadout_changed.emit()
+	return true
 
 
 #region 应援值 / 形态值
@@ -186,6 +349,8 @@ func add_card(card_id: String) -> void:
 
 
 func remove_card(card_id: String) -> bool:
+	if deck.size() <= maxi(min_deck_size, int(JourneyProgress.growth()["minimum_deck_hard_limit"])):
+		return false
 	var idx := deck.find(card_id)
 	if idx < 0:
 		return false
@@ -199,6 +364,6 @@ func deck_rarity_cost() -> int:
 	for id in deck:
 		var card := CardDB.get_card(id)
 		if card != null:
-			total += int(RARITY_COST.get(card.rarity, 0))
+			total += [0, 0, 2, 3][int(card.rarity)]
 	return total
 #endregion

@@ -3,5 +3,6 @@ extends "res://combat/battle/battle.gd"
 
 func _ready() -> void:
 	RunState.instance.reset_run()
+	RunState.instance.global_flags["unlock_leader_ult"] = true
 	RunState.instance.set_form_value(RunState.FORM_COST)
 	super._ready()

@@ -8,6 +8,7 @@ const PANEL_TEXTURE := "res://assets/ui/panels/panel_black.png"
 const SLOT_TEXTURE := "res://assets/ui/slots/item_slot_black.png"
 const PortraitStage := preload("res://combat/battle/portrait_stage.gd")
 const DoboButtonStyle := preload("res://assets/ui/dobo_button_style.gd")
+const CreatorRules := preload("res://gameplay/creator_rules.gd")
 const SUPPORTS := [
 	{"name": "文手", "art": "res://neofire/GIF/有个点子_03.png"},
 	{"name": "画手", "art": "res://neofire/GIF/笔自己画_15.png"},
@@ -159,6 +160,20 @@ func update_resources(current_energy: int, energy_max: int, locked: bool) -> voi
 		_energy_pips[i].color = Color(1, 0.81, 0.42) if i < mini(current_energy, energy_max) else Color(0.24, 0.26, 0.34)
 	for button in support_buttons:
 		button.disabled = locked
+
+
+func update_support(slot_index: int, member: String, skill: Dictionary, cost: int, reason: String, used: bool) -> void:
+	var button := support_buttons[slot_index]
+	var expression := button.get_node("Expression") as TextureRect
+	var path: String = CreatorRules.ART.get(member, "")
+	if expression.texture == null or expression.texture.resource_path != path:
+		expression.texture = load(path)
+	button.set_meta(&"member_id", member)
+	button.tooltip_text = "%d号位 · %s · %d费\n%s\n%s" % [slot_index + 1, CreatorRules.NAMES.get(member, member), cost, skill.get("name", "未装配"), skill.get("description", "")]
+	if not reason.is_empty():
+		button.tooltip_text += "\n" + reason
+	button.disabled = not reason.is_empty()
+	expression.self_modulate = Color(0.4, 0.4, 0.4) if used else Color(0.65, 0.65, 0.65) if button.disabled else Color.WHITE
 
 
 func show_menu(menu_id: String) -> void:

@@ -18,6 +18,7 @@ const TRAIL_SAMPLE := 8.0        # 队长每走这么多像素记一个足迹点
 
 @export_group("移动")
 @export var speed: float = 220.0
+@export var sprint_multiplier: float = 1.6
 ## 走路动画速度（帧/秒）
 @export var walk_fps: float = 8.0
 
@@ -122,7 +123,7 @@ func _physics_process(_delta: float) -> void:
 	var dir := Vector2(
 		Input.get_axis(&"move_left", &"move_right"),
 		Input.get_axis(&"move_up", &"move_down"))
-	velocity = dir.normalized() * speed
+	velocity = dir.normalized() * movement_speed()
 	move_and_slide()
 
 	_record_trail()
@@ -139,6 +140,10 @@ func _physics_process(_delta: float) -> void:
 
 func _direction_from_vector(dir: Vector2) -> Vector2i:
 	return ActorSheet.direction_from_vector(dir)
+
+
+func movement_speed() -> float:
+	return speed * (sprint_multiplier if bool(RunState.instance.global_flags.get("can_sprint", false)) and Input.is_key_pressed(KEY_SHIFT) else 1.0)
 
 
 func _play_idle() -> void:
@@ -203,7 +208,7 @@ func _apply_zoom() -> void:
 func _nearby_interactables() -> Array[Node]:
 	var out: Array[Node] = []
 	for node: Node in get_tree().get_nodes_in_group(&"interactable"):
-		if node is Node2D and is_instance_valid(node) and node.has_node(^"DialoguePlayer"):
+		if node is Node2D and is_instance_valid(node) and node.is_visible_in_tree() and (node.has_node(^"DialoguePlayer") or node.has_method(&"interact_with")):
 			out.append(node)
 	return out
 
@@ -254,6 +259,9 @@ func _try_interact() -> void:
 	if not active or _interact_target == null or _dialogue_busy():
 		return
 	var target := _interact_target
+	if target.has_method(&"interact_with"):
+		if target.interact_with(self): interacted.emit(target)
+		return
 	var ui := _dialogue_ui_node()
 	if ui == null:
 		push_warning("[ActorPlayer] 场景里找不到 DialogueUI（对话入口），按 E 不会有反应")
@@ -340,6 +348,36 @@ func land_at(pos: Vector2, facing: Vector2i = Vector2i.DOWN) -> void:
 ################################################################################
 
 var _trail: PackedVector2Array = PackedVector2Array()
+
+
+func capture_travel_state() -> Dictionary:
+	var scope := map_root() as Node2D
+	var point := scope.to_local(global_position)
+	var trail: Array = []
+	for sample: Vector2 in _trail:
+		var local := scope.to_local(sample)
+		trail.append([local.x, local.y])
+	return {"position": [point.x, point.y], "facing": [_facing.x, _facing.y], "trail": trail}
+
+
+func restore_travel_state(data: Dictionary) -> void:
+	var scope := map_root() as Node2D
+	var point: Array = data["position"]
+	var facing: Array = data["facing"]
+	land_at(scope.to_global(Vector2(float(point[0]), float(point[1]))), Vector2i(int(facing[0]), int(facing[1])))
+	var trail: Array = data.get("trail", [])
+	if not trail.is_empty():
+		_trail.clear()
+		for sample: Array in trail:
+			_trail.append(scope.to_global(Vector2(float(sample[0]), float(sample[1]))))
+	for node: Node in get_tree().get_nodes_in_group(&"party_follower"):
+		if scope.is_ancestor_of(node) and node is ActorNpc:
+			node.global_position = trail_point(node.party_index)
+	_interact_held = false
+	_interact_target = null
+	_hint.hide()
+	active = true
+	_camera.reset_smoothing()
 
 
 func _record_trail() -> void:

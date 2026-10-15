@@ -17,6 +17,9 @@ Godot **4.7.2** / GDScript / Compatibility 渲染。探索（自由移动 + 队�
 | 想干什么 | 怎么做 |
 |---|---|
 | 玩整个游戏 | 编辑器按 **F5**（主场景是 `game.tscn`） |
+| 手机菜单 | 游戏中按 **Esc** 掏出手机；WASD / 方向键选择应用，回车 / E / F 确认，Esc 返回或收起 |
+| 只试菜单和存档 | 打开 `tests/phone_menu_preview.tscn` 按 **F6**，进入地图后按 Esc；“存读档”应用有三个手动槽，左右按钮分别保存和读取 |
+| 试升级、灵感与四人站位 | 打开 `tests/progression_preview.tscn` 按 **F6**，初始打开笔记本，点击想法后列表左移、右侧展开详情；Esc先收详情。手机“伙伴”里调站位/装配/养成，文手或笔记本可进入思考气泡。该预览单独赠送测试资源，旁边有四人桌与调查便签，存档使用独立目录 |
 | 只试某一张地图 | 打开 `grid_movement/exploration.tscn` 或 `exploration_trial.tscn`，按 **F6** |
 | 预览战斗界面 | 打开 `tests/battle_ui_preview.tscn`，按 **F6**；支持正常出牌、结束回合和应援点击 |
 | 试抽弃动画与抛洒 | 打开 `tests/card_effect_preview.tscn`，按 **F6**；固定起手包含抛洒、修订、弃牌测试卡 `test1`、起草、灵感 |
@@ -103,6 +106,7 @@ label leave_1                        ← 玩家在队内角色说话时走开 �
 | 想改 | 去哪儿 |
 |---|---|
 | 卡牌（伤害/费用/稀有度/描述） | `combat/cards/cards.json`、起手牌 `starting_deck.json`（改完重启即生效） |
+| 共享等级、应援技能、灵感配方与产物 | `gameplay/data/` 下三个JSON，格式及接入方式见该目录的 `README.md`；测试技能名为test1、test2等 |
 | 敌人（血量/意图序列） | `combat/enemies/enemy_basic.json` |
 | 战斗手感（能量/手牌/形态加成） | `combat/battle/battle.gd` 顶部常量 + `game_state.gd`（`FORM_COST` 等） |
 | 移动/跟随/交互距离/相机缩放 | `grid_movement/pawns/actor_player.gd`、`actor_npc.gd` 的导出参数（每个房间可在实例上覆盖） |
@@ -115,6 +119,9 @@ label leave_1                        ← 玩家在队内角色说话时走开 �
 | 飞牌轨迹与火焰 | `combat/battle/card_flight.gd`、`flame_trail.gd`；回合与效果共用抽弃通道 |
 | 立绘/眼部切入/变身 | `combat/battle/portrait_stage.gd`、`portrait_glow.gdshader`、`cut_in.gd`；文手图引用 `neofire/Neofire-write.png` |
 | 交涉演出与共用缓入 | `combat/battle/writer_dialogue.gd`、`ui_shatter.gd`、`ui_transition.gd`；流程在 `battle.gd::_play_form_cutin` |
+| 手机菜单与应用页 | `ui/phone_stage.gd` 管三种布局和切换，`ui/phone_menu.gd` 管各应用内容；小人在 `ui/menu_pet.gd` |
+| 手机卡组分类与放大查看 | `ui/menu_deck_view.gd` 继承战斗牌堆浏览器，复用 `BattleCardView`；类型/稀有度筛选与排序不改变实际牌序 |
+| 存档读写与恢复 | `gameplay/save_store.gd`、`game.gd`、`game_state.gd`；文件保存在 `user://save_slots/`，设置独立保存为 `user://settings.cfg` |
 
 牌堆现在用四列大卡浏览：悬停放大，点击展开大卡；左右按钮或方向键切换，Escape 先退回牌堆，再关闭牌堆。拖出手牌会留下白色槽位，取消时原卡吸附回位；重叠手牌按原槽位选中，悬停放大不会挤占邻牌的命中区。
 
@@ -145,6 +152,8 @@ dialogue/                     dialogue_player.gd(对话驱动器) / dialogue_ui.
   dialogic/layout/            neofire_box(气泡样式) / neofire_story(全屏立绘样式)
   dialogic/timelines/*.dtl    剧本（纯文本，直接手改）
 combat/battle/                战斗场景/卡牌/牌堆/立绘切入；combat/cards/*.json 数值
+ui/                           手机菜单、伙伴、笔记本与思考气泡
+gameplay/                     存档、共享成长、应援元数据、灵感配方与四人桌
 tests/system_check.tscn|gd    自检（130+ 条断言，改动前后跑一遍）
 debug_shots/                  自检截图 + 报告
 ```
@@ -154,7 +163,13 @@ debug_shots/                  自检截图 + 报告
 - 测试房间2 还是「平背景板」：接最终手绘图后，用 `collision_block.tscn` 自己摆碰撞（或继续在房间1 那种 Grid 图层上画墙）。
 - 战斗是**点击出牌**，没有卡组构筑界面；敌人美术是占位图。
 - 「文手形态」已接通一轮交涉原型；正式对白、分支与其他形态仍待策划，现有 `test1`～`test3` 仅供验证。
-- 顶部角色技能/物品栏为 `test1`～`test4` 占位面板；设置入口暂不可用。四个应援表情都有独立触发信号，文手沿用已有进退形态逻辑，其余三个只显示测试提示，正式效果待策划。
+- 手机菜单已接通三个存读档槽、卡组分类查看、伙伴站位与独立技能装配、养成、背包、音量和全屏设置。顶部技能/物品入口在完整游戏中打开手机；独立战斗预览保留测试面板，旧顶部设置按钮暂仍禁用。
+- 队伍共享等级，升级获得新卡、技能和养成资源；每名创作者分别装配2/4/6/10费技能。战斗右侧从上到下对应10/6/4/2形态值，每位每回合最多应援一次；第一章仅文手10费形态，须先通过提案解锁。测试技能用test1、test2等占位，正式数值待策划。
+- 笔记本保存已合成想法，大提案图钉置顶、小提案在下；点击后列表左移并展开右侧详情。普通灵感按数量消耗，可重复收集；剧情灵感每种仅用一次。选中两条合法配方后确认构想，不能匹配时红框抖动并自动释放。
+- 从文手或笔记本加号打开圆润思考气泡，词条自由反弹，WASD/鼠标探索，也可一键整理；选中的词条停止移动。两种入口分别指向文手头顶与笔记本加号，大气泡开启时隐藏小气泡；手机和小人会放大并向边缘让位。
+- 四人桌预制体可近距离按E/F提交提案，确认后才解锁功能或获得物品。正式咖啡厅地图、群口剧情、碎纸机NPC兑换和遗物实际装配/触发仍待制作；卡组APP目前可查看与分类，正式编入编辑尚未制作。
+
+手机打开时暂停游戏，收起后恢复。三个手动存档保存地图、位置、队伍成长、技能装配、卡组、灵感与提案等进度；战斗、对话及转场期间暂禁存读档。新存档格式为v2，兼容读取旧v1。设置页可调整桌宠走动频率：不移动、0.5倍（默认）、1倍、2倍。
 
 ---
 

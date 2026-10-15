@@ -1,0 +1,12 @@
+{
+  "_comment":"共享等级的联调数值，正式曲线与奖励可由策划替换；经验为累计值。",
+  "minimum_deck_hard_limit":10,
+  "starting_minimum_deck":12,
+  "growth_cost":1,
+  "levels":[
+    {"level":2,"experience":10,"training_points":1,"cards":["revise"],"creator_skills":["write_4_alt"]},
+    {"level":3,"experience":30,"training_points":1,"cards":["flourish"],"creator_skills":[]},
+    {"level":4,"experience":60,"training_points":1,"cards":["inspiration"],"creator_skills":[]},
+    {"level":5,"experience":100,"training_points":1,"cards":[],"creator_skills":[]}
+  ]
+}

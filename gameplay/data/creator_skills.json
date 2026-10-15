@@ -1,0 +1,19 @@
+{
+  "_comment": "测试装配表。名称及数值供联调，正式技能由策划替换；owner与tier必须匹配装配槽。",
+  "skills": {
+    "write_2": {"name":"test1", "owner":"write", "tier":2, "starting":true, "description":"抽1张牌。", "effects":[{"kind":"draw", "value":1}]},
+    "write_4": {"name":"test2", "owner":"write", "tier":4, "starting":true, "description":"敌人获得1层虚弱。", "effects":[{"kind":"weak", "value":1}]},
+    "write_6": {"name":"test3", "owner":"write", "tier":6, "starting":true, "description":"抽2张牌。", "effects":[{"kind":"draw", "value":2}]},
+    "write_10": {"name":"文手形态", "owner":"write", "tier":10, "starting":true, "description":"进入一轮交涉。需通过提案解锁队长形态。", "mode":"writer", "effects":[]},
+    "draw_2": {"name":"test4", "owner":"draw", "tier":2, "starting":true, "description":"获得3点格挡。", "effects":[{"kind":"block", "value":3}]},
+    "draw_4": {"name":"test5", "owner":"draw", "tier":4, "starting":true, "description":"获得6点格挡。", "effects":[{"kind":"block", "value":6}]},
+    "draw_6": {"name":"test6", "owner":"draw", "tier":6, "starting":true, "description":"获得10点格挡。", "effects":[{"kind":"block", "value":10}]},
+    "rhythm_2": {"name":"test7", "owner":"rhythm", "tier":2, "starting":true, "description":"获得1点能量。", "effects":[{"kind":"energy", "value":1}]},
+    "rhythm_4": {"name":"test8", "owner":"rhythm", "tier":4, "starting":true, "description":"本场战斗获得1点力量。", "effects":[{"kind":"strength", "value":1}]},
+    "rhythm_6": {"name":"test9", "owner":"rhythm", "tier":6, "starting":true, "description":"获得2点能量。", "effects":[{"kind":"energy", "value":2}]},
+    "manga_2": {"name":"test10", "owner":"manga", "tier":2, "starting":true, "description":"造成3点伤害。", "effects":[{"kind":"damage", "value":3}]},
+    "manga_4": {"name":"test11", "owner":"manga", "tier":4, "starting":true, "description":"敌人获得1层易伤。", "effects":[{"kind":"vulnerable", "value":1}]},
+    "manga_6": {"name":"test12", "owner":"manga", "tier":6, "starting":true, "description":"造成10点伤害。", "effects":[{"kind":"damage", "value":10}]},
+    "write_4_alt": {"name":"test13", "owner":"write", "tier":4, "starting":false, "description":"抽1张牌，获得1点能量。", "effects":[{"kind":"draw", "value":1},{"kind":"energy", "value":1}]}
+  }
+}

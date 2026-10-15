@@ -1,0 +1,114 @@
+{
+  "_comment": "common白色灵感按数量消耗、可重复收集；story黑色剧情灵感每种只能使用一次。两词无序匹配。大提案在四人桌生效一次，便签提案可反复提交。",
+  "words": {
+    "scooter": {
+      "name": "路边的电动车",
+      "kind": "story"
+    },
+    "slow_walk": {
+      "name": "走路太慢了",
+      "kind": "story"
+    },
+    "draft_bag": {
+      "name": "塞满废稿的背包",
+      "kind": "story"
+    },
+    "recycle_icon": {
+      "name": "回收站图标",
+      "kind": "story"
+    },
+    "invulnerable": {
+      "name": "刀枪不入的心魔",
+      "kind": "story"
+    },
+    "kp_experience": {
+      "name": "身为KP的口胡经验",
+      "kind": "story"
+    },
+    "old_computer": {
+      "name": "老电脑",
+      "kind": "story"
+    },
+    "remove_360": {
+      "name": "快删了360！",
+      "kind": "story"
+    },
+    "test1": {
+      "name": "test1",
+      "kind": "common"
+    },
+    "test2": {
+      "name": "test2",
+      "kind": "common"
+    }
+  },
+  "recipes": {
+    "sprint": {
+      "name": "电动跑鞋",
+      "inputs": [
+        "scooter",
+        "slow_walk"
+      ],
+      "kind": "major",
+      "description": "解锁Shift疾跑。",
+      "flags": {
+        "can_sprint": true
+      }
+    },
+    "recycle": {
+      "name": "碎纸机",
+      "inputs": [
+        "draft_bag",
+        "recycle_icon"
+      ],
+      "kind": "major",
+      "description": "解锁休息区废卡回收接口。",
+      "flags": {
+        "unlock_card_recycle": true
+      }
+    },
+    "writer": {
+      "name": "文手形态",
+      "inputs": [
+        "invulnerable",
+        "kp_experience"
+      ],
+      "kind": "major",
+      "description": "解锁1号位文手10费形态。",
+      "flags": {
+        "unlock_leader_ult": true
+      }
+    },
+    "memory": {
+      "name": "硬盘扩容",
+      "inputs": [
+        "old_computer",
+        "remove_360"
+      ],
+      "kind": "major",
+      "description": "遗物容量从1格扩充到3格。",
+      "flags": {
+        "max_relic_slots": 3
+      }
+    },
+    "test1": {
+      "name": "test1",
+      "inputs": [
+        "test1",
+        "test2"
+      ],
+      "kind": "note",
+      "description": "获得1个test1物品。",
+      "items": {
+        "test1": 1
+      }
+    }
+  },
+  "items": {
+    "test1": {
+      "name": "test1",
+      "description": "test1",
+      "icon": "res://assets/ui/icons/inventory.png"
+    }
+  }
+}
