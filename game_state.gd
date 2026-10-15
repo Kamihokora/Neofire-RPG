@@ -24,7 +24,7 @@ signal deck_changed()
 ## 进入形态的消耗 / 形态值上限
 const FORM_COST := 10
 ## 形态持续回合数（话疗窗口）
-const FORM_TURNS := 5
+const FORM_TURNS := 1 # 测试阶段：一次进入只进行一轮对话，选择后自然结束。
 ## 第一章只有文手形态
 const FORM_WRITER := "writer"
 

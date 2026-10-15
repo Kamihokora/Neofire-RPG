@@ -1,6 +1,14 @@
 {
   "_comment": "新火 RPG 卡牌资源。一张卡一条。effect.kind 见 card_data.gd 的 EffectKind。改完直接用，不用重启编辑器。",
   "cards": {
+    "splash": {
+      "name": "抛洒",
+      "cost": 1,
+      "type": "skill",
+      "rarity": "basic",
+      "description": "选中手牌中的一张牌，免费打出。",
+      "effects": [{"kind": "play_free", "value": 1}]
+    },
     "draft": {
       "name": "起草",
       "cost": 1,

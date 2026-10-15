@@ -7,7 +7,7 @@ enum Type { ATTACK, SKILL, POWER, TALK }
 enum Rarity { BASIC, COMMON, UNCOMMON, RARE }
 
 ## effect.kind 的全部取值
-enum EffectKind { DAMAGE, BLOCK, DRAW, FORM, ENERGY, HEAL, WEAK, VULNERABLE, MERCY, ENTER_FORM }
+enum EffectKind { DAMAGE, BLOCK, DRAW, FORM, ENERGY, HEAL, WEAK, VULNERABLE, MERCY, ENTER_FORM, DISCARD, PLAY_FREE }
 
 @export var id: String = ""
 @export var name: String = ""
@@ -53,6 +53,10 @@ static func kind_from(text: String) -> EffectKind:
 			return EffectKind.BLOCK
 		"draw":
 			return EffectKind.DRAW
+		"discard":
+			return EffectKind.DISCARD
+		"play_free":
+			return EffectKind.PLAY_FREE
 		"form":
 			return EffectKind.FORM
 		"energy":
@@ -107,6 +111,10 @@ func auto_description() -> String:
 				parts.append("获得 %d 点格挡" % v)
 			EffectKind.DRAW:
 				parts.append("抽 %d 张牌" % v)
+			EffectKind.DISCARD:
+				parts.append("选择弃掉 %d 张手牌" % v)
+			EffectKind.PLAY_FREE:
+				parts.append("选中手牌中的一张牌，免费打出")
 			EffectKind.FORM:
 				parts.append("获得 %d 点形态值" % v)
 			EffectKind.ENERGY:

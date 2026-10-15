@@ -1,64 +1,67 @@
 extends Control
-## 形态切换时的全身立绘切入（OMORI 式的“大招演出”）。
-##
-## 时序：立绘从右侧滑入 + 闪白 → 标题从左侧滑入 → 停留 → 整体淡出。
-## 调用：play("writer", "文手形态", "res://assets/portraits/xinhuo_normal.png")
+## 横向眼部切入。Atlas 只取文手立绘双眼，不修改原图。
 
-const IN_TIME := 0.35
-const HOLD_TIME := 0.75
-const OUT_TIME := 0.3
-
-@onready var _art: TextureRect = $Art
-@onready var _title: Label = $Title
-@onready var _flash: ColorRect = $Flash
-@onready var _dim: ColorRect = $Dim
-
-var _tween: Tween = null
+const EYE_REGION := Rect2(540, 625, 650, 380)
+var _banner: Node2D
+var _eye_art: TextureRect
+var _tween: Tween
 
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$Art.hide()
+	$Title.hide()
+	$Flash.hide()
+	_banner = Node2D.new()
+	_banner.name = "EyeBanner"
+	_banner.position = Vector2(0, 252)
+	add_child(_banner)
+	_polygon(_banner, PackedVector2Array([Vector2(0, 22), Vector2(1850, -72), Vector2(1920, 302), Vector2(0, 412)]), Color(0.015, 0.015, 0.025))
+	_polygon(_banner, PackedVector2Array([Vector2(0, 40), Vector2(1838, -54), Vector2(1920, 282), Vector2(0, 392)]), Color.WHITE)
+	var mask := _polygon(_banner, PackedVector2Array([Vector2(0, 58), Vector2(1818, -31), Vector2(1920, 264), Vector2(0, 371)]), Color(0.15, 0.6, 0.66))
+	mask.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+	_eye_art = TextureRect.new()
+	_eye_art.name = "Eyes"
+	_eye_art.position = Vector2(0, -310)
+	_eye_art.size = Vector2(1920, 920)
+	_eye_art.pivot_offset = _eye_art.size * 0.5
+	_eye_art.rotation = -0.43
+	_eye_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_eye_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_eye_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mask.add_child(_eye_art)
+	_polygon(_banner, PackedVector2Array([Vector2(0, 382), Vector2(1480, 306), Vector2(1370, 330), Vector2(0, 404)]), Color(0.9, 0.08, 0.16))
+	_polygon(_banner, PackedVector2Array([Vector2(1360, -18), Vector2(1810, -42), Vector2(1770, -25), Vector2(1320, 2)]), Color(0.9, 0.08, 0.16))
 
 
-## 播放切入。返回的 await 在演出播完后继续。
-func play(_form_id: String, title: String, art_path: String = "") -> void:
-	if not art_path.is_empty() and ResourceLoader.exists(art_path):
-		_art.texture = load(art_path)
-	_title.text = title
+func play(_form_id: String, title: String, art_path: String = "res://neofire/Neofire-write.png") -> void:
+	var eyes := AtlasTexture.new()
+	eyes.atlas = load(art_path)
+	eyes.region = EYE_REGION
+	_eye_art.texture = eyes
+	$Title.text = title
 	visible = true
+	_banner.position.x = -2200
+	_eye_art.position.x = 70
+	$Dim.modulate.a = 0
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
-
-	var art_home := _art.position
-	var title_home := _title.position
-
-	# 入场
-	_dim.modulate.a = 0.0
-	_art.position = art_home + Vector2(520.0, 0.0)
-	_title.position = title_home - Vector2(420.0, 0.0)
-	_art.modulate.a = 0.0
-	_title.modulate.a = 0.0
-	_flash.color.a = 0.9
-
-	_tween = create_tween()
-	_tween.set_parallel(true)
-	_tween.tween_property(_dim, ^"modulate:a", 1.0, IN_TIME)
-	_tween.tween_property(_art, ^"position", art_home, IN_TIME).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_tween.tween_property(_art, ^"modulate:a", 1.0, IN_TIME)
-	_tween.tween_property(_title, ^"position", title_home, IN_TIME + 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_tween.tween_property(_title, ^"modulate:a", 1.0, IN_TIME + 0.12)
-	_tween.tween_property(_flash, ^"color:a", 0.0, IN_TIME)
-	await _tween.finished
-
-	await get_tree().create_timer(HOLD_TIME).timeout
-
-	# 收场
 	_tween = create_tween().set_parallel(true)
-	_tween.tween_property(self, ^"modulate:a", 0.0, OUT_TIME)
+	_tween.tween_property(_banner, ^"position:x", 0.0, 0.22).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	_tween.tween_property($Dim, ^"modulate:a", 0.8, 0.18)
+	_tween.tween_property(_eye_art, ^"position:x", -45.0, 0.78)
 	await _tween.finished
-
+	_tween = create_tween().set_parallel(true)
+	_tween.tween_property(_banner, ^"position:x", 2200.0, 0.18).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	_tween.tween_property($Dim, ^"modulate:a", 0.0, 0.18)
+	await _tween.finished
 	visible = false
-	modulate.a = 1.0
-	_art.position = art_home
-	_title.position = title_home
+
+
+func _polygon(parent: Node, points: PackedVector2Array, color: Color) -> Polygon2D:
+	var polygon := Polygon2D.new()
+	polygon.polygon = points
+	polygon.color = color
+	parent.add_child(polygon)
+	return polygon

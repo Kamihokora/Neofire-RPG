@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://combat/battle/battle.tscn" id="1"]
+[ext_resource type="Script" path="res://tests/writer_form_preview.gd" id="2"]
+
+[node name="WriterFormPreview" instance=ExtResource("1")]
+script = ExtResource("2")
+auto_start = true

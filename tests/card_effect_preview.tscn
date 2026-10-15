@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://combat/battle/battle.tscn" id="1_battle"]
+[ext_resource type="Script" path="res://tests/card_effect_preview.gd" id="2_preview"]
+
+[node name="CardEffectPreview" instance=ExtResource("1_battle")]
+script = ExtResource("2_preview")
+auto_start = true
